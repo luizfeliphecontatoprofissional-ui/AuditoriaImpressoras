@@ -1,10 +1,10 @@
-.venv/
 .idea/
-__pycache__/
-*.pyc
+.venv/
 *.whl
 dados/
 relatorios/
+__pycache__/
+*.pyc
 *.xlsx
 *.xls
 *.csv
