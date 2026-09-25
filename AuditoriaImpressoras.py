@@ -16,8 +16,10 @@ def carregar_inventario(caminho):
     for valor in dados.iloc[8]:
         data = pd.to_datetime(valor, errors="coerce")
 
-        if pd.notna(data) and data not in datas:
+        if pd.notna(data):
             datas.append(data)
+
+    datas = sorted(set(datas))
 
     if len(datas) < 2:
         raise ValueError(
