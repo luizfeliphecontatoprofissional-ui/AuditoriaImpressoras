@@ -67,36 +67,171 @@ def carregar_inventario(caminho):
 
     return dados
 
+def verificar_counter_types(ndd, inventario):
+    regras = {
+        "1": ["A4"],
+        "2": ["A4"],
+        "3": ["A3", "A4"],
+        "4": ["Print"],
+        "5": ["A3", "A4"],
+    }
+
+    ndd["SerialNumber"] = (
+        ndd["SerialNumber"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+
+    ndd["CounterTypeDescription"] = (
+        ndd["CounterTypeDescription"]
+        .astype(str)
+        .str.strip()
+    )
+
+    inventario["Numero de Série"] = (
+        inventario["Numero de Série"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+
+    inventario["Item"] = (
+        inventario["Item"]
+        .astype(str)
+        .str.strip()
+        .str.replace(r"^0+", "", regex=True)
+    )
+
+    tipos_por_serial = {}
+
+    for _, linha in ndd.iterrows():
+
+        serial = linha["SerialNumber"]
+        tipo_contador = linha["CounterTypeDescription"]
+
+        if serial == "NAN" or not serial:
+            continue
+
+        if serial not in tipos_por_serial:
+            tipos_por_serial[serial] = set()
+
+        tipos_por_serial[serial].add(tipo_contador)
+
+    total_por_item = {}
+    completos = 0
+    faltando_serial = 0
+    faltando_counter_type = 0
+
+    print("\n=== VERIFICAÇÃO DOS COUNTER TYPES ===")
+
+    for _, linha in inventario.iterrows():
+
+        serial = linha["Numero de Série"]
+        item = linha["Item"]
+
+        if serial == "NAN" or not serial:
+            continue
+
+        if item not in regras:
+            continue
+
+        esperados = set(regras[item])
+
+        encontrados = tipos_por_serial.get(serial, set())
+
+        faltantes = esperados - encontrados
+
+        if item not in total_por_item:
+            total_por_item[item] = {
+                "total": 0,
+                "completos": 0,
+                "faltando": 0
+            }
+
+        total_por_item[item]["total"] += 1
+
+        if serial not in tipos_por_serial:
+            faltando_serial += 1
+            total_por_item[item]["faltando"] += 1
+
+        elif faltantes:
+            faltando_counter_type += 1
+            total_por_item[item]["faltando"] += 1
+
+        else:
+            completos += 1
+            total_por_item[item]["completos"] += 1
+
+    # Resumo
+    for item, dados in sorted(total_por_item.items()):
+        print(
+            f"Item {item}: "
+            f"{dados['completos']} completos | "
+            f"{dados['faltando']} incompletos | "
+            f"Total: {dados['total']}"
+        )
+
+    print("\n=== RESUMO ===")
+    print("Impressoras com CounterTypes esperados:", completos)
+    print("Impressoras sem o serial no NDD:", faltando_serial)
+    print("Impressoras com CounterType faltando:", faltando_counter_type)
+
 def main():
-    caminho = "dados/faturamento.xlsx"
+    caminho_ndd = "dados/ndd.xlsx"
+    caminho_faturamento = "dados/faturamento.xlsx"
 
-    inventario = carregar_inventario(caminho)
+    ndd = pd.read_excel(caminho_ndd)
+    inventario = carregar_inventario(caminho_faturamento)
 
-    colunas_contadores = [
-        ("Start_Mono", "End_Mono", "Volume_Mono"),
-        ("Start_Mono A3", "End_Mono A3", "Volume_Mono A3"),
-        ("Start_Color", "End_Color", "Volume_Color"),
-        ("Start_Color A3", "End_Color A3", "Volume_Color A3"),
-    ]
+    verificar_counter_types(ndd, inventario)
 
-    print("=== TESTE DOS VOLUMES ===")
+    ndd["SerialNumber"] = (
+        ndd["SerialNumber"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
 
-    for inicio, fim, volume in colunas_contadores:
-        inicio_num = pd.to_numeric(inventario[inicio], errors="coerce")
-        fim_num = pd.to_numeric(inventario[fim], errors="coerce")
-        volume_num = pd.to_numeric(inventario[volume], errors="coerce")
+    inventario["Numero de Série"] = (
+        inventario["Numero de Série"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
 
-        valido = inicio_num.notna() & fim_num.notna() & volume_num.notna()
+    serials_ndd = {
+        serial
+        for serial in ndd["SerialNumber"]
+        if serial and serial != "NAN"
+    }
 
-        esperado = fim_num - inicio_num
-        resultado = esperado == volume_num
+    serials_inventario = {
+        serial
+        for serial in inventario["Numero de Série"]
+        if serial and serial != "NAN"
+    }
 
-        testes = resultado[valido]
+    encontrados = serials_inventario & serials_ndd
+    nao_encontrados = serials_inventario - serials_ndd
 
-        print(f"\n{volume}")
-        print("Registros comparáveis:", len(testes))
-        print("Corretos:", testes.sum())
-        print("Divergentes:", (~testes).sum())
+    print("=== CRUZAMENTO DE NÚMEROS DE SÉRIE ===")
+    print("Seriais no Inventário:", len(serials_inventario))
+    print("Seriais no NDD:", len(serials_ndd))
+    print("Encontrados nos dois:", len(encontrados))
+    print("Não encontrados no NDD:", len(nao_encontrados))
+
+    print("\n=== TIPOS DE CONTADOR NO NDD ===")
+
+    tipos_contador = (
+        ndd["CounterTypeDescription"]
+        .astype(str)
+        .str.strip()
+        .value_counts()
+    )
+
+    for tipo, quantidade in tipos_contador.items():
+        print(f"{tipo}: {quantidade}")
 
 if __name__ == "__main__":
     main()
