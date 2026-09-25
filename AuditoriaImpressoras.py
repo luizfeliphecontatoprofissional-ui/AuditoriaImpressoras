@@ -1,17 +1,28 @@
 import pandas as pd
 
-def carregar_excel(caminho):
-    return pd.read_excel(caminho)
 
 def main():
-    ndd = carregar_excel("dados/NDD.xlsx")
-    faturamento = carregar_excel("dados/faturamento.xlsx")
+    caminho = "dados/faturamento.xlsx"
 
-    print("NDD:")
-    print(ndd.columns.tolist())
+    dados = pd.read_excel(
+        caminho,
+        sheet_name="Inventário & Volume",
+        header=None,
+        nrows=10
+    )
 
-    print("\nFaturamento:")
-    print(faturamento.columns.tolist())
+    print("=== CABEÇALHO SUPERIOR ===")
+
+    for coluna in range(len(dados.columns)):
+        valor_linha_8 = dados.iloc[8, coluna]
+        valor_linha_9 = dados.iloc[9, coluna]
+
+        print(
+            f"Coluna {coluna}: "
+            f"grupo = {valor_linha_8!r} | "
+            f"campo = {valor_linha_9!r}"
+        )
+
 
 if __name__ == "__main__":
     main()
