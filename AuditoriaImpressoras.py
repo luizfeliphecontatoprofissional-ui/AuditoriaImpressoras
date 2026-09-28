@@ -401,6 +401,99 @@ def comparar_tipo_4(ndd_map, inventario):
 
     return divergencias
 
+def comparar_tipo_5(ndd_map, inventario):
+    divergencias = []
+
+    for _, linha in inventario.iterrows():
+
+        serial = str(linha["Numero de Série"]).strip().upper()
+        item = str(linha["Item"]).strip().lstrip("0")
+
+        if serial == "NAN" or not serial:
+            continue
+
+        if item != "5":
+            continue
+
+        registro_a4 = ndd_map.get((serial, "A4"))
+        registro_a3 = ndd_map.get((serial, "A3"))
+
+        if registro_a4 is None or registro_a3 is None:
+            continue
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "Start A4 Mono vs Start Mono",
+            registro_a4["StartCounterMono"],
+            linha["Start_Mono"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "Start A4 Color vs Start Color",
+            registro_a4["StartCounterColor"],
+            linha["Start_Color"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "Start A3 Mono vs Start Mono A3",
+            registro_a3["StartCounterMono"],
+            linha["Start_Mono A3"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "Start A3 Color vs Start Color A3",
+            registro_a3["StartCounterColor"],
+            linha["Start_Color A3"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "End A4 Mono vs End Mono",
+            registro_a4["EndCounterMono"],
+            linha["End_Mono"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "End A4 Color vs End Color",
+            registro_a4["EndCounterColor"],
+            linha["End_Color"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "End A3 Mono vs End Mono A3",
+            registro_a3["EndCounterMono"],
+            linha["End_Mono A3"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "End A3 Color vs End Color A3",
+            registro_a3["EndCounterColor"],
+            linha["End_Color A3"]
+        )
+
+    return divergencias
 
 def main():
     caminho_ndd = "dados/ndd.xlsx"
@@ -439,6 +532,16 @@ def main():
     divergencias.extend(
         divergencias_tipo_4
     )
+
+    divergencias_tipo_5 = comparar_tipo_5(
+        ndd_map,
+        inventario
+    )
+
+    print("\n=== TIPO 5 ===")
+    print("Divergências encontradas:", len(divergencias_tipo_5))
+
+    divergencias.extend(divergencias_tipo_5)
 
     print("\n=== AUDITORIA ===")
     print(
