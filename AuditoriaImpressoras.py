@@ -244,9 +244,7 @@ def comparar_tipo_1_2(ndd_map, inventario):
     for _, linha in inventario.iterrows():
 
         serial = str(linha["Numero de Série"]).strip().upper()
-        item = str(linha["Item"]).strip()
-
-        item = item.lstrip("0")
+        item = str(linha["Item"]).strip().lstrip("0")
 
         if serial == "NAN" or not serial:
             continue
@@ -279,6 +277,64 @@ def comparar_tipo_1_2(ndd_map, inventario):
 
     return divergencias
 
+def comparar_tipo_3(ndd_map, inventario):
+    divergencias = []
+
+    for _, linha in inventario.iterrows():
+
+        serial = str(linha["Numero de Série"]).strip().upper()
+        item = str(linha["Item"]).strip().lstrip("0")
+
+        if serial == "NAN" or not serial:
+            continue
+
+        if item != "3":
+            continue
+
+        registro_a3 = ndd_map.get((serial, "A3"))
+        registro_a4 = ndd_map.get((serial, "A4"))
+
+        if registro_a3 is None or registro_a4 is None:
+            continue
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "Start A3 vs Start Mono A3",
+            registro_a3["StartCounterTotal"],
+            linha["Start_Mono A3"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "Start A4 vs Start Mono",
+            registro_a4["StartCounterTotal"],
+            linha["Start_Mono"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "End A3 vs End Mono A3",
+            registro_a3["EndCounterTotal"],
+            linha["End_Mono A3"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "End A4 vs End Mono",
+            registro_a4["EndCounterTotal"],
+            linha["End_Mono"]
+        )
+
+    return divergencias
+
 def main():
     caminho_ndd = "dados/ndd.xlsx"
     caminho_faturamento = "dados/faturamento.xlsx"
@@ -288,65 +344,18 @@ def main():
 
     ndd_map = criar_ndd_map(ndd)
 
-    divergencias = comparar_tipo_1_2(
-        ndd_map,
-        inventario
+    divergencias = []
+
+    divergencias.extend(
+        comparar_tipo_1_2(ndd_map, inventario)
     )
 
-    print("\n=== TIPO 1 E 2 ===")
-    print("Divergências encontradas:", len(divergencias))
-
-    for divergencia in divergencias:
-        print(divergencia)
-
-    verificar_counter_types(ndd, inventario)
-
-    ndd["SerialNumber"] = (
-        ndd["SerialNumber"]
-        .astype(str)
-        .str.strip()
-        .str.upper()
+    divergencias.extend(
+        comparar_tipo_3(ndd_map, inventario)
     )
 
-    inventario["Numero de Série"] = (
-        inventario["Numero de Série"]
-        .astype(str)
-        .str.strip()
-        .str.upper()
-    )
-
-    serials_ndd = {
-        serial
-        for serial in ndd["SerialNumber"]
-        if serial and serial != "NAN"
-    }
-
-    serials_inventario = {
-        serial
-        for serial in inventario["Numero de Série"]
-        if serial and serial != "NAN"
-    }
-
-    encontrados = serials_inventario & serials_ndd
-    nao_encontrados = serials_inventario - serials_ndd
-
-    print("\n=== CRUZAMENTO DE NÚMEROS DE SÉRIE ===")
-    print("Seriais no Inventário:", len(serials_inventario))
-    print("Seriais no NDD:", len(serials_ndd))
-    print("Encontrados nos dois:", len(encontrados))
-    print("Não encontrados no NDD:", len(nao_encontrados))
-
-    print("\n=== TIPOS DE CONTADOR NO NDD ===")
-
-    tipos_contador = (
-        ndd["CounterTypeDescription"]
-        .astype(str)
-        .str.strip()
-        .value_counts()
-    )
-
-    for tipo, quantidade in tipos_contador.items():
-        print(f"{tipo}: {quantidade}")
+    print("\n=== AUDITORIA ===")
+    print("Total de divergências:", len(divergencias))
 
 if __name__ == "__main__":
     main()
