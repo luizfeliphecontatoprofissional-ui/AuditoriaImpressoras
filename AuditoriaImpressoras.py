@@ -1,4 +1,5 @@
 import pandas as pd
+from collections import Counter
 
 
 def carregar_inventario(caminho):
@@ -66,6 +67,7 @@ def carregar_inventario(caminho):
     dados.columns = novas_colunas
 
     return dados
+
 
 def verificar_counter_types(ndd, inventario):
     regras = {
@@ -137,7 +139,6 @@ def verificar_counter_types(ndd, inventario):
             continue
 
         esperados = set(regras[item])
-
         encontrados = tipos_por_serial.get(serial, set())
 
         faltantes = esperados - encontrados
@@ -176,11 +177,14 @@ def verificar_counter_types(ndd, inventario):
     print("Impressoras sem o serial no NDD:", faltando_serial)
     print("Impressoras com CounterType faltando:", faltando_counter_type)
 
+
 def criar_ndd_map(ndd):
     ndd_map = {}
 
     for _, linha in ndd.iterrows():
+
         serial = str(linha["SerialNumber"]).strip().upper()
+
         tipo_contador = str(
             linha["CounterTypeDescription"]
         ).strip()
@@ -197,6 +201,7 @@ def criar_ndd_map(ndd):
 
     return ndd_map
 
+
 def para_numero(valor):
     numero = pd.to_numeric(valor, errors="coerce")
 
@@ -204,6 +209,7 @@ def para_numero(valor):
         return None
 
     return float(numero)
+
 
 def comparar_contador(
     divergencias,
@@ -237,6 +243,7 @@ def comparar_contador(
             valor_ndd,
             valor_faturamento
         ])
+
 
 def comparar_tipo_1_2(ndd_map, inventario):
     divergencias = []
@@ -276,6 +283,7 @@ def comparar_tipo_1_2(ndd_map, inventario):
         )
 
     return divergencias
+
 
 def comparar_tipo_3(ndd_map, inventario):
     divergencias = []
@@ -335,6 +343,65 @@ def comparar_tipo_3(ndd_map, inventario):
 
     return divergencias
 
+
+def comparar_tipo_4(ndd_map, inventario):
+    divergencias = []
+
+    for _, linha in inventario.iterrows():
+
+        serial = str(linha["Numero de Série"]).strip().upper()
+        item = str(linha["Item"]).strip().lstrip("0")
+
+        if serial == "NAN" or not serial:
+            continue
+
+        if item != "4":
+            continue
+
+        registro_print = ndd_map.get((serial, "Print"))
+
+        if registro_print is None:
+            continue
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "Start Mono vs Start Mono",
+            registro_print["StartCounterMono"],
+            linha["Start_Mono"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "Start Color vs Start Color",
+            registro_print["StartCounterColor"],
+            linha["Start_Color"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "End Mono vs End Mono",
+            registro_print["EndCounterMono"],
+            linha["End_Mono"]
+        )
+
+        comparar_contador(
+            divergencias,
+            serial,
+            item,
+            "End Color vs End Color",
+            registro_print["EndCounterColor"],
+            linha["End_Color"]
+        )
+
+    return divergencias
+
+
 def main():
     caminho_ndd = "dados/ndd.xlsx"
     caminho_faturamento = "dados/faturamento.xlsx"
@@ -347,15 +414,38 @@ def main():
     divergencias = []
 
     divergencias.extend(
-        comparar_tipo_1_2(ndd_map, inventario)
+        comparar_tipo_1_2(
+            ndd_map,
+            inventario
+        )
     )
 
     divergencias.extend(
-        comparar_tipo_3(ndd_map, inventario)
+        comparar_tipo_3(
+            ndd_map,
+            inventario
+        )
+    )
+
+    divergencias_tipo_4 = comparar_tipo_4(
+        ndd_map,
+        inventario
+    )
+
+    print("\n=== TIPO 4 ===")
+    print("Divergências encontradas:", len(divergencias_tipo_4))
+
+
+    divergencias.extend(
+        divergencias_tipo_4
     )
 
     print("\n=== AUDITORIA ===")
-    print("Total de divergências:", len(divergencias))
+    print(
+        "Total de divergências:",
+        len(divergencias)
+    )
+
 
 if __name__ == "__main__":
     main()
