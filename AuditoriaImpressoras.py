@@ -66,7 +66,7 @@ def carregar_inventario(caminho):
 
     dados.columns = novas_colunas
 
-    return dados
+    return dados, data_inicio, data_fim
 
 
 def verificar_counter_types(ndd, inventario):
@@ -495,48 +495,92 @@ def comparar_tipo_5(ndd_map, inventario):
 
     return divergencias
 
+def gerar_relatorio(divergencias, caminho_saida, data_inicio, data_fim):
+    colunas = [
+        "SerialNumber",
+        "Tipo/Item",
+        "Campo Divergente",
+        "Valor NDD",
+        "Valor Tecprinters"
+    ]
+
+    df_relatorio = pd.DataFrame(divergencias, columns=colunas)
+
+    with pd.ExcelWriter(caminho_saida, engine="openpyxl") as writer:
+        pd.DataFrame(
+            [["Relatório de Divergências da Auditoria"]],
+            columns=["Relatório"]
+        ).to_excel(
+            writer,
+            sheet_name="Divergências",
+            index=False,
+            header=False,
+            startrow=0
+        )
+
+        pd.DataFrame(
+            [[
+                f"Período: {data_inicio.strftime('%d/%m/%Y')} "
+                f"a {data_fim.strftime('%d/%m/%Y')}"
+            ]],
+            columns=["Informações"]
+        ).to_excel(
+            writer,
+            sheet_name="Divergências",
+            index=False,
+            header=False,
+            startrow=1
+        )
+
+        pd.DataFrame(
+            [[f"Total de divergências: {len(df_relatorio)}"]],
+            columns=["Informações"]
+        ).to_excel(
+            writer,
+            sheet_name="Divergências",
+            index=False,
+            header=False,
+            startrow=2
+        )
+
+        df_relatorio.to_excel(
+            writer,
+            sheet_name="Divergências",
+            index=False,
+            startrow=4
+        )
+
+    print("\n=== RELATÓRIO ===")
+    print("Relatório gerado com sucesso!")
+    print("Local:", caminho_saida)
+    print("Quantidade de divergências:", len(df_relatorio))
+
+
+
 def main():
     caminho_ndd = "dados/ndd.xlsx"
     caminho_faturamento = "dados/faturamento.xlsx"
 
     ndd = pd.read_excel(caminho_ndd)
-    inventario = carregar_inventario(caminho_faturamento)
+    inventario, data_inicio, data_fim = carregar_inventario(caminho_faturamento)
 
     ndd_map = criar_ndd_map(ndd)
 
     divergencias = []
 
-    divergencias.extend(
-        comparar_tipo_1_2(
-            ndd_map,
-            inventario
-        )
-    )
+    divergencias.extend(comparar_tipo_1_2(ndd_map, inventario))
 
-    divergencias.extend(
-        comparar_tipo_3(
-            ndd_map,
-            inventario
-        )
-    )
+    divergencias.extend(comparar_tipo_3(ndd_map, inventario))
 
-    divergencias_tipo_4 = comparar_tipo_4(
-        ndd_map,
-        inventario
-    )
+    divergencias_tipo_4 = comparar_tipo_4(ndd_map, inventario)
 
     print("\n=== TIPO 4 ===")
     print("Divergências encontradas:", len(divergencias_tipo_4))
 
 
-    divergencias.extend(
-        divergencias_tipo_4
-    )
+    divergencias.extend(divergencias_tipo_4)
 
-    divergencias_tipo_5 = comparar_tipo_5(
-        ndd_map,
-        inventario
-    )
+    divergencias_tipo_5 = comparar_tipo_5(ndd_map, inventario)
 
     print("\n=== TIPO 5 ===")
     print("Divergências encontradas:", len(divergencias_tipo_5))
@@ -544,11 +588,15 @@ def main():
     divergencias.extend(divergencias_tipo_5)
 
     print("\n=== AUDITORIA ===")
-    print(
-        "Total de divergências:",
-        len(divergencias)
-    )
+    print("Total de divergências:",len(divergencias))
 
+    caminho_relatorio = "relatorios/divergencias.xlsx"
+    gerar_relatorio(
+        divergencias,
+        caminho_relatorio,
+        data_inicio,
+        data_fim
+    )
 
 if __name__ == "__main__":
     main()
