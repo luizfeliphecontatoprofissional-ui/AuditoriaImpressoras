@@ -1,6 +1,9 @@
 import pandas as pd
 from collections import Counter
 
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+
 
 def carregar_inventario(caminho):
     dados = pd.read_excel(
@@ -507,48 +510,93 @@ def gerar_relatorio(divergencias, caminho_saida, data_inicio, data_fim):
     df_relatorio = pd.DataFrame(divergencias, columns=colunas)
 
     with pd.ExcelWriter(caminho_saida, engine="openpyxl") as writer:
-        pd.DataFrame(
-            [["Relatório de Divergências da Auditoria"]],
-            columns=["Relatório"]
-        ).to_excel(
-            writer,
-            sheet_name="Divergências",
-            index=False,
-            header=False,
-            startrow=0
-        )
-
-        pd.DataFrame(
-            [[
-                f"Período: {data_inicio.strftime('%d/%m/%Y')} "
-                f"a {data_fim.strftime('%d/%m/%Y')}"
-            ]],
-            columns=["Informações"]
-        ).to_excel(
-            writer,
-            sheet_name="Divergências",
-            index=False,
-            header=False,
-            startrow=1
-        )
-
-        pd.DataFrame(
-            [[f"Total de divergências: {len(df_relatorio)}"]],
-            columns=["Informações"]
-        ).to_excel(
-            writer,
-            sheet_name="Divergências",
-            index=False,
-            header=False,
-            startrow=2
-        )
-
         df_relatorio.to_excel(
             writer,
             sheet_name="Divergências",
             index=False,
             startrow=4
         )
+
+        planilha = writer.book["Divergências"]
+
+        planilha.merge_cells("A1:E1")
+        planilha["A1"] = "Relatório de Divergências da Auditoria"
+        planilha["A1"].font = Font(bold=True, size=16)
+        planilha["A1"].alignment = Alignment(
+            horizontal="center",
+            vertical="center"
+        )
+
+        planilha.merge_cells("A2:E2")
+        planilha["A2"] = (
+            f"Período: {data_inicio.strftime('%d/%m/%Y')} "
+            f"a {data_fim.strftime('%d/%m/%Y')}"
+        )
+
+        planilha.merge_cells("A3:E3")
+        planilha["A3"] = (
+            f"Total de divergências: {len(df_relatorio)}"
+        )
+
+        planilha["A2"].alignment = Alignment(horizontal="left")
+        planilha["A3"].alignment = Alignment(horizontal="left")
+
+        for celula in planilha[5]:
+            celula.font = Font(bold=True)
+            celula.alignment = Alignment(
+                horizontal="center",
+                vertical="center"
+            )
+            celula.fill = PatternFill(
+                fill_type="solid",
+                fgColor="D9EAF7"
+            )
+
+        borda = Border(
+            left=Side(style="thin", color="BFBFBF"),
+            right=Side(style="thin", color="BFBFBF"),
+            top=Side(style="thin", color="BFBFBF"),
+            bottom=Side(style="thin", color="BFBFBF")
+        )
+
+        for linha in planilha.iter_rows(
+            min_row=5,
+            max_row=planilha.max_row,
+            min_col=1,
+            max_col=5
+        ):
+            for celula in linha:
+                celula.border = borda
+
+        larguras = {
+            "A": 20,
+            "B": 12,
+            "C": 35,
+            "D": 18,
+            "E": 22
+        }
+
+        for coluna, largura in larguras.items():
+            planilha.column_dimensions[coluna].width = largura
+
+        for celula in planilha["C"]:
+            celula.alignment = Alignment(
+                vertical="center",
+                wrap_text=True
+            )
+
+        for linha in range(6, planilha.max_row + 1):
+            planilha[f"D{linha}"].number_format = "0"
+            planilha[f"E{linha}"].number_format = "0"
+
+        planilha.auto_filter.ref = (
+            f"A5:E{planilha.max_row}"
+        )
+
+        planilha.freeze_panes = "A6"
+
+        planilha.row_dimensions[1].height = 25
+        planilha.row_dimensions[5].height = 22
 
     print("\n=== RELATÓRIO ===")
     print("Relatório gerado com sucesso!")
