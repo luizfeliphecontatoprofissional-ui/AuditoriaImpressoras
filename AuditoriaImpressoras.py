@@ -1,8 +1,8 @@
 import os
+
 import pandas as pd
 
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-from openpyxl.utils import get_column_letter
 
 
 def carregar_inventario(caminho):
@@ -124,6 +124,7 @@ def verificar_counter_types(ndd, inventario):
         tipos_por_serial[serial].add(tipo_contador)
 
     total_por_item = {}
+
     completos = 0
     faltando_serial = 0
     faltando_counter_type = 0
@@ -142,6 +143,7 @@ def verificar_counter_types(ndd, inventario):
             continue
 
         esperados = set(regras[item])
+
         encontrados = tipos_por_serial.get(serial, set())
 
         faltantes = esperados - encontrados
@@ -156,18 +158,22 @@ def verificar_counter_types(ndd, inventario):
         total_por_item[item]["total"] += 1
 
         if serial not in tipos_por_serial:
+
             faltando_serial += 1
             total_por_item[item]["faltando"] += 1
 
         elif faltantes:
+
             faltando_counter_type += 1
             total_por_item[item]["faltando"] += 1
 
         else:
+
             completos += 1
             total_por_item[item]["completos"] += 1
 
     for item, dados in sorted(total_por_item.items()):
+
         print(
             f"Item {item}: "
             f"{dados['completos']} completos | "
@@ -176,9 +182,18 @@ def verificar_counter_types(ndd, inventario):
         )
 
     print("\n=== RESUMO ===")
-    print("Impressoras com CounterTypes esperados:", completos)
-    print("Impressoras sem o serial no NDD:", faltando_serial)
-    print("Impressoras com CounterType faltando:", faltando_counter_type)
+    print(
+        "Impressoras com CounterTypes esperados:",
+        completos
+    )
+    print(
+        "Impressoras sem o serial no NDD:",
+        faltando_serial
+    )
+    print(
+        "Impressoras com CounterType faltando:",
+        faltando_counter_type
+    )
 
 
 def criar_ndd_map(ndd):
@@ -186,7 +201,9 @@ def criar_ndd_map(ndd):
 
     for _, linha in ndd.iterrows():
 
-        serial = str(linha["SerialNumber"]).strip().upper()
+        serial = str(
+            linha["SerialNumber"]
+        ).strip().upper()
 
         tipo_contador = str(
             linha["CounterTypeDescription"]
@@ -198,7 +215,10 @@ def criar_ndd_map(ndd):
         if tipo_contador == "NAN" or not tipo_contador:
             continue
 
-        chave = (serial, tipo_contador)
+        chave = (
+            serial,
+            tipo_contador
+        )
 
         ndd_map[chave] = linha
 
@@ -206,7 +226,10 @@ def criar_ndd_map(ndd):
 
 
 def para_numero(valor):
-    numero = pd.to_numeric(valor, errors="coerce")
+    numero = pd.to_numeric(
+        valor,
+        errors="coerce"
+    )
 
     if pd.isna(numero):
         return None
@@ -229,6 +252,7 @@ def comparar_contador(
         return
 
     if ndd_num is None or fat_num is None:
+
         divergencias.append([
             serial,
             item,
@@ -236,9 +260,11 @@ def comparar_contador(
             valor_ndd,
             valor_faturamento
         ])
+
         return
 
     if ndd_num != fat_num:
+
         divergencias.append([
             serial,
             item,
@@ -253,8 +279,13 @@ def comparar_tipo_1_2(ndd_map, inventario):
 
     for _, linha in inventario.iterrows():
 
-        serial = str(linha["Numero de Série"]).strip().upper()
-        item = str(linha["Item"]).strip().lstrip("0")
+        serial = str(
+            linha["Numero de Série"]
+        ).strip().upper()
+
+        item = str(
+            linha["Item"]
+        ).strip().lstrip("0")
 
         if serial == "NAN" or not serial:
             continue
@@ -262,7 +293,9 @@ def comparar_tipo_1_2(ndd_map, inventario):
         if item not in ("1", "2"):
             continue
 
-        registro_ndd = ndd_map.get((serial, "A4"))
+        registro_ndd = ndd_map.get(
+            (serial, "A4")
+        )
 
         if registro_ndd is None:
             continue
@@ -293,8 +326,13 @@ def comparar_tipo_3(ndd_map, inventario):
 
     for _, linha in inventario.iterrows():
 
-        serial = str(linha["Numero de Série"]).strip().upper()
-        item = str(linha["Item"]).strip().lstrip("0")
+        serial = str(
+            linha["Numero de Série"]
+        ).strip().upper()
+
+        item = str(
+            linha["Item"]
+        ).strip().lstrip("0")
 
         if serial == "NAN" or not serial:
             continue
@@ -302,10 +340,18 @@ def comparar_tipo_3(ndd_map, inventario):
         if item != "3":
             continue
 
-        registro_a3 = ndd_map.get((serial, "A3"))
-        registro_a4 = ndd_map.get((serial, "A4"))
+        registro_a3 = ndd_map.get(
+            (serial, "A3")
+        )
 
-        if registro_a3 is None or registro_a4 is None:
+        registro_a4 = ndd_map.get(
+            (serial, "A4")
+        )
+
+        if (
+            registro_a3 is None
+            or registro_a4 is None
+        ):
             continue
 
         comparar_contador(
@@ -352,8 +398,13 @@ def comparar_tipo_4(ndd_map, inventario):
 
     for _, linha in inventario.iterrows():
 
-        serial = str(linha["Numero de Série"]).strip().upper()
-        item = str(linha["Item"]).strip().lstrip("0")
+        serial = str(
+            linha["Numero de Série"]
+        ).strip().upper()
+
+        item = str(
+            linha["Item"]
+        ).strip().lstrip("0")
 
         if serial == "NAN" or not serial:
             continue
@@ -361,7 +412,9 @@ def comparar_tipo_4(ndd_map, inventario):
         if item != "4":
             continue
 
-        registro_print = ndd_map.get((serial, "Print"))
+        registro_print = ndd_map.get(
+            (serial, "Print")
+        )
 
         if registro_print is None:
             continue
@@ -404,13 +457,19 @@ def comparar_tipo_4(ndd_map, inventario):
 
     return divergencias
 
+
 def comparar_tipo_5(ndd_map, inventario):
     divergencias = []
 
     for _, linha in inventario.iterrows():
 
-        serial = str(linha["Numero de Série"]).strip().upper()
-        item = str(linha["Item"]).strip().lstrip("0")
+        serial = str(
+            linha["Numero de Série"]
+        ).strip().upper()
+
+        item = str(
+            linha["Item"]
+        ).strip().lstrip("0")
 
         if serial == "NAN" or not serial:
             continue
@@ -418,10 +477,18 @@ def comparar_tipo_5(ndd_map, inventario):
         if item != "5":
             continue
 
-        registro_a4 = ndd_map.get((serial, "A4"))
-        registro_a3 = ndd_map.get((serial, "A3"))
+        registro_a4 = ndd_map.get(
+            (serial, "A4")
+        )
 
-        if registro_a4 is None or registro_a3 is None:
+        registro_a3 = ndd_map.get(
+            (serial, "A3")
+        )
+
+        if (
+            registro_a4 is None
+            or registro_a3 is None
+        ):
             continue
 
         comparar_contador(
@@ -498,7 +565,13 @@ def comparar_tipo_5(ndd_map, inventario):
 
     return divergencias
 
-def gerar_relatorio(divergencias, caminho_saida, data_inicio, data_fim):
+
+def gerar_relatorio(
+    divergencias,
+    caminho_saida,
+    data_inicio,
+    data_fim
+):
     colunas = [
         "SerialNumber",
         "Tipo/Item",
@@ -507,11 +580,21 @@ def gerar_relatorio(divergencias, caminho_saida, data_inicio, data_fim):
         "Valor Tecprinters"
     ]
 
-    df_relatorio = pd.DataFrame(divergencias, columns=colunas)
+    df_relatorio = pd.DataFrame(
+        divergencias,
+        columns=colunas
+    )
 
-    os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
+    os.makedirs(
+        os.path.dirname(caminho_saida),
+        exist_ok=True
+    )
 
-    with pd.ExcelWriter(caminho_saida, engine="openpyxl") as writer:
+    with pd.ExcelWriter(
+        caminho_saida,
+        engine="openpyxl"
+    ) as writer:
+
         df_relatorio.to_excel(
             writer,
             sheet_name="Divergências",
@@ -522,43 +605,78 @@ def gerar_relatorio(divergencias, caminho_saida, data_inicio, data_fim):
         planilha = writer.book["Divergências"]
 
         planilha.merge_cells("A1:E1")
-        planilha["A1"] = "Relatório de Divergências da Auditoria"
-        planilha["A1"].font = Font(bold=True, size=16)
+
+        planilha["A1"] = (
+            "Relatório de Divergências da Auditoria"
+        )
+
+        planilha["A1"].font = Font(
+            bold=True,
+            size=16
+        )
+
         planilha["A1"].alignment = Alignment(
             horizontal="center",
             vertical="center"
         )
 
         planilha.merge_cells("A2:E2")
+
         planilha["A2"] = (
-            f"Período: {data_inicio.strftime('%d/%m/%Y')} "
-            f"a {data_fim.strftime('%d/%m/%Y')}"
+            f"Período: "
+            f"{data_inicio.strftime('%d/%m/%Y')} "
+            f"a "
+            f"{data_fim.strftime('%d/%m/%Y')}"
         )
 
         planilha.merge_cells("A3:E3")
+
         planilha["A3"] = (
-            f"Total de divergências: {len(df_relatorio)}"
+            f"Total de divergências: "
+            f"{len(df_relatorio)}"
         )
 
-        planilha["A2"].alignment = Alignment(horizontal="left")
-        planilha["A3"].alignment = Alignment(horizontal="left")
+        planilha["A2"].alignment = Alignment(
+            horizontal="left"
+        )
+
+        planilha["A3"].alignment = Alignment(
+            horizontal="left"
+        )
 
         for celula in planilha[5]:
-            celula.font = Font(bold=True)
+
+            celula.font = Font(
+                bold=True
+            )
+
             celula.alignment = Alignment(
                 horizontal="center",
                 vertical="center"
             )
+
             celula.fill = PatternFill(
                 fill_type="solid",
                 fgColor="D9EAF7"
             )
 
         borda = Border(
-            left=Side(style="thin", color="BFBFBF"),
-            right=Side(style="thin", color="BFBFBF"),
-            top=Side(style="thin", color="BFBFBF"),
-            bottom=Side(style="thin", color="BFBFBF")
+            left=Side(
+                style="thin",
+                color="BFBFBF"
+            ),
+            right=Side(
+                style="thin",
+                color="BFBFBF"
+            ),
+            top=Side(
+                style="thin",
+                color="BFBFBF"
+            ),
+            bottom=Side(
+                style="thin",
+                color="BFBFBF"
+            )
         )
 
         for linha in planilha.iter_rows(
@@ -567,6 +685,7 @@ def gerar_relatorio(divergencias, caminho_saida, data_inicio, data_fim):
             min_col=1,
             max_col=5
         ):
+
             for celula in linha:
                 celula.border = borda
 
@@ -582,12 +701,17 @@ def gerar_relatorio(divergencias, caminho_saida, data_inicio, data_fim):
             planilha.column_dimensions[coluna].width = largura
 
         for celula in planilha["C"]:
+
             celula.alignment = Alignment(
                 vertical="center",
                 wrap_text=True
             )
 
-        for linha in range(6, planilha.max_row + 1):
+        for linha in range(
+            6,
+            planilha.max_row + 1
+        ):
+
             planilha[f"D{linha}"].number_format = "0"
             planilha[f"E{linha}"].number_format = "0"
 
@@ -603,29 +727,36 @@ def gerar_relatorio(divergencias, caminho_saida, data_inicio, data_fim):
     print("\n=== RELATÓRIO ===")
     print("Relatório gerado com sucesso!")
     print("Local:", caminho_saida)
-    print("Quantidade de divergências:", len(df_relatorio))
+    print(
+        "Quantidade de divergências:",
+        len(df_relatorio)
+    )
 
-def main():
+
+def executar_auditoria():
     try:
         caminho_ndd = "dados/ndd.xlsx"
         caminho_faturamento = "dados/faturamento.xlsx"
 
-        # Carrega os arquivos
-        ndd = pd.read_excel(caminho_ndd)
-        inventario, data_inicio, data_fim = carregar_inventario(
-            caminho_faturamento
+        ndd = pd.read_excel(
+            caminho_ndd
         )
 
-        # Cria o mapa dos dados do NDD
+        inventario, data_inicio, data_fim = (
+            carregar_inventario(
+                caminho_faturamento
+            )
+        )
+
         ndd_map = criar_ndd_map(ndd)
 
-        # Lista geral de divergências
         divergencias = []
 
-        # TIPOS 1 E 2
-        divergencias_tipo_1_2 = comparar_tipo_1_2(
-            ndd_map,
-            inventario
+        divergencias_tipo_1_2 = (
+            comparar_tipo_1_2(
+                ndd_map,
+                inventario
+            )
         )
 
         print("\n=== TIPO 1 E 2 ===")
@@ -634,12 +765,15 @@ def main():
             len(divergencias_tipo_1_2)
         )
 
-        divergencias.extend(divergencias_tipo_1_2)
+        divergencias.extend(
+            divergencias_tipo_1_2
+        )
 
-        # TIPO 3
-        divergencias_tipo_3 = comparar_tipo_3(
-            ndd_map,
-            inventario
+        divergencias_tipo_3 = (
+            comparar_tipo_3(
+                ndd_map,
+                inventario
+            )
         )
 
         print("\n=== TIPO 3 ===")
@@ -648,12 +782,15 @@ def main():
             len(divergencias_tipo_3)
         )
 
-        divergencias.extend(divergencias_tipo_3)
+        divergencias.extend(
+            divergencias_tipo_3
+        )
 
-        # TIPO 4
-        divergencias_tipo_4 = comparar_tipo_4(
-            ndd_map,
-            inventario
+        divergencias_tipo_4 = (
+            comparar_tipo_4(
+                ndd_map,
+                inventario
+            )
         )
 
         print("\n=== TIPO 4 ===")
@@ -662,12 +799,15 @@ def main():
             len(divergencias_tipo_4)
         )
 
-        divergencias.extend(divergencias_tipo_4)
+        divergencias.extend(
+            divergencias_tipo_4
+        )
 
-        # TIPO 5
-        divergencias_tipo_5 = comparar_tipo_5(
-            ndd_map,
-            inventario
+        divergencias_tipo_5 = (
+            comparar_tipo_5(
+                ndd_map,
+                inventario
+            )
         )
 
         print("\n=== TIPO 5 ===")
@@ -676,17 +816,19 @@ def main():
             len(divergencias_tipo_5)
         )
 
-        divergencias.extend(divergencias_tipo_5)
+        divergencias.extend(
+            divergencias_tipo_5
+        )
 
-        # RESULTADO FINAL
         print("\n=== AUDITORIA ===")
         print(
             "Total de divergências:",
             len(divergencias)
         )
 
-        # Geração do relatório
-        caminho_relatorio = "relatorios/divergencias.xlsx"
+        caminho_relatorio = (
+            "relatorios/divergencias.xlsx"
+        )
 
         gerar_relatorio(
             divergencias,
@@ -695,34 +837,100 @@ def main():
             data_fim
         )
 
+        return True
+
     except FileNotFoundError as erro:
+
         print("\n=== ERRO ===")
         print("Arquivo não encontrado.")
-        print("Verifique se os arquivos estão na pasta 'dados'.")
+        print(
+            "Verifique se os arquivos estão "
+            "na pasta 'dados'."
+        )
         print("Detalhes:", erro)
+
+        return False
 
     except PermissionError:
+
         print("\n=== ERRO ===")
-        print("Não foi possível acessar ou salvar um arquivo.")
         print(
-            "Verifique se algum arquivo está aberto "
-            "no Excel e tente novamente."
+            "Não foi possível acessar "
+            "ou salvar um arquivo."
+        )
+        print(
+            "Verifique se algum arquivo está "
+            "aberto no Excel e tente novamente."
         )
 
+        return False
+
     except KeyError as erro:
+
         print("\n=== ERRO ===")
-        print("Uma coluna esperada não foi encontrada na planilha.")
+        print(
+            "Uma coluna esperada não foi "
+            "encontrada na planilha."
+        )
         print("Coluna:", erro)
 
+        return False
+
     except ValueError as erro:
+
         print("\n=== ERRO ===")
-        print("Os dados da planilha não estão no formato esperado.")
+        print(
+            "Os dados da planilha não estão "
+            "no formato esperado."
+        )
         print("Detalhes:", erro)
 
+        return False
+
     except Exception as erro:
+
         print("\n=== ERRO INESPERADO ===")
-        print("O programa encontrou um erro que não foi previsto.")
+        print(
+            "O programa encontrou um erro "
+            "que não foi previsto."
+        )
         print("Detalhes:", erro)
+
+        return False
+
+
+def main():
+    print("=" * 45)
+    print("       AUDITORIA DE IMPRESSORAS")
+    print("=" * 45)
+
+    print("\nIniciando auditoria...")
+
+    sucesso = executar_auditoria()
+
+    if sucesso:
+
+        print("\n=== CONCLUÍDO ===")
+        print(
+            "A auditoria foi executada "
+            "com sucesso."
+        )
+        print(
+            "O relatório foi salvo em:"
+        )
+        print(
+            "relatorios/divergencias.xlsx"
+        )
+
+    else:
+
+        print(
+            "\nA auditoria não foi concluída."
+        )
+
+    input(
+        "\nPressione ENTER para sair..."
+    )
 
 
 if __name__ == "__main__":
