@@ -1,5 +1,5 @@
+import os
 import pandas as pd
-from collections import Counter
 
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
@@ -509,6 +509,8 @@ def gerar_relatorio(divergencias, caminho_saida, data_inicio, data_fim):
 
     df_relatorio = pd.DataFrame(divergencias, columns=colunas)
 
+    os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
+
     with pd.ExcelWriter(caminho_saida, engine="openpyxl") as writer:
         df_relatorio.to_excel(
             writer,
@@ -603,48 +605,125 @@ def gerar_relatorio(divergencias, caminho_saida, data_inicio, data_fim):
     print("Local:", caminho_saida)
     print("Quantidade de divergências:", len(df_relatorio))
 
-
-
 def main():
-    caminho_ndd = "dados/ndd.xlsx"
-    caminho_faturamento = "dados/faturamento.xlsx"
+    try:
+        caminho_ndd = "dados/ndd.xlsx"
+        caminho_faturamento = "dados/faturamento.xlsx"
 
-    ndd = pd.read_excel(caminho_ndd)
-    inventario, data_inicio, data_fim = carregar_inventario(caminho_faturamento)
+        # Carrega os arquivos
+        ndd = pd.read_excel(caminho_ndd)
+        inventario, data_inicio, data_fim = carregar_inventario(
+            caminho_faturamento
+        )
 
-    ndd_map = criar_ndd_map(ndd)
+        # Cria o mapa dos dados do NDD
+        ndd_map = criar_ndd_map(ndd)
 
-    divergencias = []
+        # Lista geral de divergências
+        divergencias = []
 
-    divergencias.extend(comparar_tipo_1_2(ndd_map, inventario))
+        # TIPOS 1 E 2
+        divergencias_tipo_1_2 = comparar_tipo_1_2(
+            ndd_map,
+            inventario
+        )
 
-    divergencias.extend(comparar_tipo_3(ndd_map, inventario))
+        print("\n=== TIPO 1 E 2 ===")
+        print(
+            "Divergências encontradas:",
+            len(divergencias_tipo_1_2)
+        )
 
-    divergencias_tipo_4 = comparar_tipo_4(ndd_map, inventario)
+        divergencias.extend(divergencias_tipo_1_2)
 
-    print("\n=== TIPO 4 ===")
-    print("Divergências encontradas:", len(divergencias_tipo_4))
+        # TIPO 3
+        divergencias_tipo_3 = comparar_tipo_3(
+            ndd_map,
+            inventario
+        )
 
+        print("\n=== TIPO 3 ===")
+        print(
+            "Divergências encontradas:",
+            len(divergencias_tipo_3)
+        )
 
-    divergencias.extend(divergencias_tipo_4)
+        divergencias.extend(divergencias_tipo_3)
 
-    divergencias_tipo_5 = comparar_tipo_5(ndd_map, inventario)
+        # TIPO 4
+        divergencias_tipo_4 = comparar_tipo_4(
+            ndd_map,
+            inventario
+        )
 
-    print("\n=== TIPO 5 ===")
-    print("Divergências encontradas:", len(divergencias_tipo_5))
+        print("\n=== TIPO 4 ===")
+        print(
+            "Divergências encontradas:",
+            len(divergencias_tipo_4)
+        )
 
-    divergencias.extend(divergencias_tipo_5)
+        divergencias.extend(divergencias_tipo_4)
 
-    print("\n=== AUDITORIA ===")
-    print("Total de divergências:",len(divergencias))
+        # TIPO 5
+        divergencias_tipo_5 = comparar_tipo_5(
+            ndd_map,
+            inventario
+        )
 
-    caminho_relatorio = "relatorios/divergencias.xlsx"
-    gerar_relatorio(
-        divergencias,
-        caminho_relatorio,
-        data_inicio,
-        data_fim
-    )
+        print("\n=== TIPO 5 ===")
+        print(
+            "Divergências encontradas:",
+            len(divergencias_tipo_5)
+        )
+
+        divergencias.extend(divergencias_tipo_5)
+
+        # RESULTADO FINAL
+        print("\n=== AUDITORIA ===")
+        print(
+            "Total de divergências:",
+            len(divergencias)
+        )
+
+        # Geração do relatório
+        caminho_relatorio = "relatorios/divergencias.xlsx"
+
+        gerar_relatorio(
+            divergencias,
+            caminho_relatorio,
+            data_inicio,
+            data_fim
+        )
+
+    except FileNotFoundError as erro:
+        print("\n=== ERRO ===")
+        print("Arquivo não encontrado.")
+        print("Verifique se os arquivos estão na pasta 'dados'.")
+        print("Detalhes:", erro)
+
+    except PermissionError:
+        print("\n=== ERRO ===")
+        print("Não foi possível acessar ou salvar um arquivo.")
+        print(
+            "Verifique se algum arquivo está aberto "
+            "no Excel e tente novamente."
+        )
+
+    except KeyError as erro:
+        print("\n=== ERRO ===")
+        print("Uma coluna esperada não foi encontrada na planilha.")
+        print("Coluna:", erro)
+
+    except ValueError as erro:
+        print("\n=== ERRO ===")
+        print("Os dados da planilha não estão no formato esperado.")
+        print("Detalhes:", erro)
+
+    except Exception as erro:
+        print("\n=== ERRO INESPERADO ===")
+        print("O programa encontrou um erro que não foi previsto.")
+        print("Detalhes:", erro)
+
 
 if __name__ == "__main__":
     main()
