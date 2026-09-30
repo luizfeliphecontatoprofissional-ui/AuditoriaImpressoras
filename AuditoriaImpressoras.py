@@ -840,7 +840,14 @@ def executar_auditoria(
             data_fim
         )
 
-        return True
+        return {
+            "sucesso": True,
+            "mensagem": "Auditoria concluída com sucesso.",
+            "caminho_relatorio": caminho_relatorio,
+            "data_inicio": data_inicio,
+            "data_fim": data_fim,
+            "total_divergencias": len(divergencias)
+        }
 
     except FileNotFoundError as erro:
 
@@ -852,9 +859,15 @@ def executar_auditoria(
         )
         print("Detalhes:", erro)
 
-        return False
+        return {
+            "sucesso": False,
+            "mensagem": (
+                "Arquivo não encontrado.\n\n"
+                "Verifique se os arquivos selecionados existem."
+            )
+        }
 
-    except PermissionError:
+    except PermissionError as erro:
 
         print("\n=== ERRO ===")
         print(
@@ -866,7 +879,14 @@ def executar_auditoria(
             "aberto no Excel e tente novamente."
         )
 
-        return False
+        return {
+            "sucesso": False,
+            "mensagem": (
+                "Não foi possível acessar ou salvar um arquivo.\n\n"
+                "Feche o relatório no Excel e tente novamente.\n\n"
+                f"Detalhes: {erro}"
+            )
+        }
 
     except KeyError as erro:
 
@@ -877,7 +897,13 @@ def executar_auditoria(
         )
         print("Coluna:", erro)
 
-        return False
+        return {
+            "sucesso": False,
+            "mensagem": (
+                f"Uma coluna esperada não foi encontrada na planilha.\n\n"
+                f"Coluna: {erro}"
+            )
+        }
 
     except ValueError as erro:
 
@@ -888,7 +914,13 @@ def executar_auditoria(
         )
         print("Detalhes:", erro)
 
-        return False
+        return {
+            "sucesso": False,
+            "mensagem": (
+                f"Os dados da planilha não estão no formato esperado.\n\n"
+                f"Detalhes: {erro}"
+            )
+        }
 
     except Exception as erro:
 
@@ -899,7 +931,13 @@ def executar_auditoria(
         )
         print("Detalhes:", erro)
 
-        return False
+        return {
+            "sucesso": False,
+            "mensagem": (
+                f"O programa encontrou um erro inesperado.\n\n"
+                f"Detalhes: {erro}"
+            )
+        }
 
 
 def selecionar_arquivo(entry):
@@ -967,18 +1005,28 @@ def executar_pela_interface():
     status_var.set("Executando auditoria...")
     root.update_idletasks()
 
-    sucesso = executar_auditoria(
+    resultado = executar_auditoria(
         caminho_ndd,
         caminho_faturamento
     )
 
-    if sucesso:
-        status_var.set("✓ Auditoria concluída com sucesso.")
+    if resultado["sucesso"]:
+        total = resultado["total_divergencias"]
+        inicio = resultado["data_inicio"].strftime("%d/%m/%Y")
+        fim = resultado["data_fim"].strftime("%d/%m/%Y")
+
+        status_var.set(
+            f"Auditoria concluída | Período: {inicio} a {fim} "
+            f"| Divergências: {total}"
+        )
+
         botao_abrir.config(state="normal")
 
         messagebox.showinfo(
             "Auditoria concluída",
             "A auditoria foi executada com sucesso.\n\n"
+            f"Período: {inicio} a {fim}\n"
+            f"Divergências encontradas: {total}\n\n"
             "O relatório foi salvo em:\n"
             "relatorios/divergencias.xlsx"
         )
@@ -986,8 +1034,7 @@ def executar_pela_interface():
         status_var.set("A auditoria não foi concluída.")
         messagebox.showerror(
             "Erro na auditoria",
-            "A auditoria não foi concluída.\n\n"
-            "Verifique os dados e os arquivos selecionados."
+            resultado["mensagem"]
         )
 
     botao_executar.config(state="normal")
@@ -1003,7 +1050,7 @@ def main():
 
     root = tk.Tk()
     root.title("Auditoria de Impressoras")
-    root.geometry("620x420")
+    root.geometry("650x500")
     root.resizable(False, False)
 
     estilo = ttk.Style()
@@ -1096,7 +1143,7 @@ def main():
         wraplength=540,
         anchor="center"
     )
-    status.pack(pady=(20, 0))
+    status.pack(pady=(18, 0), fill="x")
 
     root.mainloop()
 
