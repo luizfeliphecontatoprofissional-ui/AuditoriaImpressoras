@@ -1,4 +1,6 @@
 import os
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
 
 import pandas as pd
 
@@ -733,10 +735,11 @@ def gerar_relatorio(
     )
 
 
-def executar_auditoria():
+def executar_auditoria(
+    caminho_ndd="dados/ndd.xlsx",
+    caminho_faturamento="dados/faturamento.xlsx"
+):
     try:
-        caminho_ndd = "dados/ndd.xlsx"
-        caminho_faturamento = "dados/faturamento.xlsx"
 
         ndd = pd.read_excel(
             caminho_ndd
@@ -899,38 +902,203 @@ def executar_auditoria():
         return False
 
 
-def main():
-    print("=" * 45)
-    print("       AUDITORIA DE IMPRESSORAS")
-    print("=" * 45)
+def selecionar_arquivo(entry):
+    caminho = filedialog.askopenfilename(
+        title="Selecionar arquivo",
+        filetypes=[
+            ("Arquivos Excel", "*.xlsx"),
+            ("Todos os arquivos", "*.*")
+        ]
+    )
 
-    print("\nIniciando auditoria...")
+    if caminho:
+        entry.delete(0, tk.END)
+        entry.insert(0, caminho)
 
-    sucesso = executar_auditoria()
+
+def abrir_relatorio():
+    caminho_relatorio = os.path.abspath(
+        "relatorios/divergencias.xlsx"
+    )
+
+    if not os.path.exists(caminho_relatorio):
+        messagebox.showwarning(
+            "Relatório não encontrado",
+            "O relatório ainda não foi gerado."
+        )
+        return
+
+    try:
+        os.startfile(caminho_relatorio)
+    except Exception as erro:
+        messagebox.showerror(
+            "Erro ao abrir relatório",
+            f"Não foi possível abrir o relatório.\n\n{erro}"
+        )
+
+
+def executar_pela_interface():
+    caminho_ndd = entrada_ndd.get().strip()
+    caminho_faturamento = entrada_faturamento.get().strip()
+
+    if not caminho_ndd or not caminho_faturamento:
+        messagebox.showwarning(
+            "Arquivos não selecionados",
+            "Selecione os dois arquivos antes de executar a auditoria."
+        )
+        return
+
+    if not os.path.isfile(caminho_ndd):
+        messagebox.showwarning(
+            "Arquivo NDD inválido",
+            "O arquivo NDD selecionado não foi encontrado."
+        )
+        return
+
+    if not os.path.isfile(caminho_faturamento):
+        messagebox.showwarning(
+            "Arquivo de faturamento inválido",
+            "O arquivo de faturamento selecionado não foi encontrado."
+        )
+        return
+
+    botao_executar.config(state="disabled")
+    botao_abrir.config(state="disabled")
+    status_var.set("Executando auditoria...")
+    root.update_idletasks()
+
+    sucesso = executar_auditoria(
+        caminho_ndd,
+        caminho_faturamento
+    )
 
     if sucesso:
+        status_var.set("✓ Auditoria concluída com sucesso.")
+        botao_abrir.config(state="normal")
 
-        print("\n=== CONCLUÍDO ===")
-        print(
-            "A auditoria foi executada "
-            "com sucesso."
-        )
-        print(
-            "O relatório foi salvo em:"
-        )
-        print(
+        messagebox.showinfo(
+            "Auditoria concluída",
+            "A auditoria foi executada com sucesso.\n\n"
+            "O relatório foi salvo em:\n"
             "relatorios/divergencias.xlsx"
         )
-
     else:
-
-        print(
-            "\nA auditoria não foi concluída."
+        status_var.set("A auditoria não foi concluída.")
+        messagebox.showerror(
+            "Erro na auditoria",
+            "A auditoria não foi concluída.\n\n"
+            "Verifique os dados e os arquivos selecionados."
         )
 
-    input(
-        "\nPressione ENTER para sair..."
+    botao_executar.config(state="normal")
+
+
+def main():
+    global root
+    global entrada_ndd
+    global entrada_faturamento
+    global botao_executar
+    global botao_abrir
+    global status_var
+
+    root = tk.Tk()
+    root.title("Auditoria de Impressoras")
+    root.geometry("620x420")
+    root.resizable(False, False)
+
+    estilo = ttk.Style()
+    try:
+        estilo.theme_use("vista")
+    except tk.TclError:
+        pass
+
+    frame_principal = ttk.Frame(
+        root,
+        padding=30
     )
+    frame_principal.pack(fill="both", expand=True)
+
+    titulo = ttk.Label(
+        frame_principal,
+        text="AUDITORIA DE IMPRESSORAS",
+        font=("Segoe UI", 18, "bold")
+    )
+    titulo.pack(pady=(0, 5))
+
+    subtitulo = ttk.Label(
+        frame_principal,
+        text="Comparação entre dados NDD e Faturamento"
+    )
+    subtitulo.pack(pady=(0, 25))
+
+    frame_ndd = ttk.Frame(frame_principal)
+    frame_ndd.pack(fill="x", pady=5)
+
+    ttk.Label(
+        frame_ndd,
+        text="Arquivo NDD"
+    ).pack(anchor="w")
+
+    linha_ndd = ttk.Frame(frame_ndd)
+    linha_ndd.pack(fill="x", pady=(5, 0))
+
+    entrada_ndd = ttk.Entry(linha_ndd)
+    entrada_ndd.pack(side="left", fill="x", expand=True)
+
+    ttk.Button(
+        linha_ndd,
+        text="Procurar",
+        command=lambda: selecionar_arquivo(entrada_ndd)
+    ).pack(side="left", padx=(8, 0))
+
+    frame_faturamento = ttk.Frame(frame_principal)
+    frame_faturamento.pack(fill="x", pady=15)
+
+    ttk.Label(
+        frame_faturamento,
+        text="Arquivo de Faturamento"
+    ).pack(anchor="w")
+
+    linha_faturamento = ttk.Frame(frame_faturamento)
+    linha_faturamento.pack(fill="x", pady=(5, 0))
+
+    entrada_faturamento = ttk.Entry(linha_faturamento)
+    entrada_faturamento.pack(side="left", fill="x", expand=True)
+
+    ttk.Button(
+        linha_faturamento,
+        text="Procurar",
+        command=lambda: selecionar_arquivo(entrada_faturamento)
+    ).pack(side="left", padx=(8, 0))
+
+    botao_executar = ttk.Button(
+        frame_principal,
+        text="EXECUTAR AUDITORIA",
+        command=executar_pela_interface
+    )
+    botao_executar.pack(pady=(20, 10), ipadx=20, ipady=5)
+
+    botao_abrir = ttk.Button(
+        frame_principal,
+        text="ABRIR RELATÓRIO",
+        command=abrir_relatorio,
+        state="disabled"
+    )
+    botao_abrir.pack(pady=5, ipadx=20, ipady=3)
+
+    status_var = tk.StringVar(
+        value="Status: Aguardando arquivos..."
+    )
+
+    status = ttk.Label(
+        frame_principal,
+        textvariable=status_var,
+        wraplength=540,
+        anchor="center"
+    )
+    status.pack(pady=(20, 0))
+
+    root.mainloop()
 
 
 if __name__ == "__main__":
