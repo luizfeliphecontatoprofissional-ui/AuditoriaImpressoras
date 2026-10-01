@@ -735,6 +735,39 @@ def gerar_relatorio(
     )
 
 
+def criar_caminho_relatorio(data_inicio, data_fim):
+    pasta_relatorios = "relatorios"
+
+    os.makedirs(
+        pasta_relatorios,
+        exist_ok=True
+    )
+
+    nome_base = (
+        "Relatorio_Divergencias_"
+        f"{data_inicio.strftime('%d-%m-%Y')}_a_"
+        f"{data_fim.strftime('%d-%m-%Y')}"
+    )
+
+    caminho = os.path.join(
+        pasta_relatorios,
+        f"{nome_base}.xlsx"
+    )
+
+    contador = 2
+
+    while os.path.exists(caminho):
+
+        caminho = os.path.join(
+            pasta_relatorios,
+            f"{nome_base}_{contador}.xlsx"
+        )
+
+        contador += 1
+
+    return caminho
+
+
 def executar_auditoria(
     caminho_ndd="dados/ndd.xlsx",
     caminho_faturamento="dados/faturamento.xlsx"
@@ -829,8 +862,9 @@ def executar_auditoria(
             len(divergencias)
         )
 
-        caminho_relatorio = (
-            "relatorios/divergencias.xlsx"
+        caminho_relatorio = criar_caminho_relatorio(
+            data_inicio,
+            data_fim
         )
 
         gerar_relatorio(
@@ -955,14 +989,21 @@ def selecionar_arquivo(entry):
 
 
 def abrir_relatorio():
+    if not ultimo_relatorio:
+        messagebox.showwarning(
+            "Relatório não encontrado",
+            "Nenhum relatório foi gerado nesta execução."
+        )
+        return
+
     caminho_relatorio = os.path.abspath(
-        "relatorios/divergencias.xlsx"
+        ultimo_relatorio
     )
 
     if not os.path.exists(caminho_relatorio):
         messagebox.showwarning(
             "Relatório não encontrado",
-            "O relatório ainda não foi gerado."
+            "O último relatório gerado não foi encontrado."
         )
         return
 
@@ -976,6 +1017,8 @@ def abrir_relatorio():
 
 
 def executar_pela_interface():
+    global ultimo_relatorio
+
     caminho_ndd = entrada_ndd.get().strip()
     caminho_faturamento = entrada_faturamento.get().strip()
 
@@ -1020,6 +1063,8 @@ def executar_pela_interface():
             f"| Divergências: {total}"
         )
 
+        ultimo_relatorio = resultado["caminho_relatorio"]
+
         botao_abrir.config(state="normal")
 
         messagebox.showinfo(
@@ -1027,8 +1072,8 @@ def executar_pela_interface():
             "A auditoria foi executada com sucesso.\n\n"
             f"Período: {inicio} a {fim}\n"
             f"Divergências encontradas: {total}\n\n"
-            "O relatório foi salvo em:\n"
-            "relatorios/divergencias.xlsx"
+            "Relatório salvo em:\n"
+            f"{resultado['caminho_relatorio']}"
         )
     else:
         status_var.set("A auditoria não foi concluída.")
@@ -1047,6 +1092,9 @@ def main():
     global botao_executar
     global botao_abrir
     global status_var
+    global ultimo_relatorio
+
+    ultimo_relatorio = None
 
     root = tk.Tk()
     root.title("Auditoria de Impressoras")
