@@ -157,89 +157,6 @@ Os arquivos de dados utilizados na empresa não fazem parte do repositório púb
 
 ---
 
-## Como utilizar
-
-### 1. Preparar os arquivos
-
-O arquivo NDD precisa conter os dados de leitura dos contadores, incluindo informações como:
-
-```text
-SerialNumber
-CounterTypeDescription
-StartCounterMono
-EndCounterMono
-StartCounterColor
-EndCounterColor
-StartCounterTotal
-EndCounterTotal
-```
-
-O arquivo de faturamento precisa possuir os dados do dispositivo e os contadores de início e fim necessários para as comparações.
-
-### 2. Executar a aplicação
-
-Abra o projeto em um ambiente Python e execute o arquivo principal:
-
-```bash
-python Auditorialmpressores.py
-```
-
-### 3. Selecionar os arquivos
-
-Na interface:
-
-```text
-Arquivo NDD
-→ Procurar
-→ selecionar o arquivo
-
-Arquivo de Faturamento
-→ Procurar
-→ selecionar o arquivo
-```
-
-Depois, clique em:
-
-```text
-EXECUTAR AUDITORIA
-```
-
-### 4. Consultar o resultado
-
-Ao finalizar, o programa gera o relatório na pasta:
-
-```text
-relatorios/
-```
-
-O botão **ABRIR RELATÓRIO** permite abrir diretamente o arquivo gerado na última execução.
-
----
-
-## Tratamento de erros
-
-A aplicação possui tratamento para alguns problemas comuns:
-
-- arquivo não encontrado;
-- arquivo ou relatório bloqueado por outro programa;
-- coluna esperada ausente;
-- dados em formato diferente do esperado;
-- erros inesperados durante a execução.
-
-Um exemplo prático é quando o relatório está aberto no Excel. Nesse caso, o programa informa que o arquivo não pôde ser salvo para que o usuário possa fechar a planilha e tentar novamente.
-
----
-
-## Histórico de versões
-
-### `v6.0` — Primeira versão com interface gráfica
-
-Marco do projeto em que a auditoria passou a contar com uma interface gráfica para seleção dos arquivos e execução do processo.
-
-O desenvolvimento continuou após esse marco com melhorias na organização dos relatórios e no fluxo da aplicação.
-
----
-
 ## Situação atual
 
 O projeto já possui:
@@ -291,4 +208,4 @@ Projeto desenvolvido em Python com foco em automação, tratamento de dados, aud
 
 ## Licença
 
-Este projeto foi desenvolvido para fins acadêmicos e profissionais relacionados ao processo de auditoria de dados de impressão.
+Este projeto foi desenvolvido para profissionais relacionados ao processo de auditoria de dados de impressão.
