@@ -79,7 +79,7 @@ def verificar_counter_types(ndd, inventario):
         "1": ["A4"],
         "2": ["A4"],
         "3": ["A3", "A4"],
-        "4": ["Print"],
+        "4": ["A4"],
         "5": ["A3", "A4"],
     }
 
@@ -414,11 +414,11 @@ def comparar_tipo_4(ndd_map, inventario):
         if item != "4":
             continue
 
-        registro_print = ndd_map.get(
-            (serial, "Print")
+        registro_a4 = ndd_map.get(
+            (serial, "A4")
         )
 
-        if registro_print is None:
+        if registro_a4 is None:
             continue
 
         comparar_contador(
@@ -426,7 +426,7 @@ def comparar_tipo_4(ndd_map, inventario):
             serial,
             item,
             "Start Mono vs Start Mono",
-            registro_print["StartCounterMono"],
+            registro_a4["StartCounterMono"],
             linha["Start_Mono"]
         )
 
@@ -435,7 +435,7 @@ def comparar_tipo_4(ndd_map, inventario):
             serial,
             item,
             "Start Color vs Start Color",
-            registro_print["StartCounterColor"],
+            registro_a4["StartCounterColor"],
             linha["Start_Color"]
         )
 
@@ -444,7 +444,7 @@ def comparar_tipo_4(ndd_map, inventario):
             serial,
             item,
             "End Mono vs End Mono",
-            registro_print["EndCounterMono"],
+            registro_a4["EndCounterMono"],
             linha["End_Mono"]
         )
 
@@ -453,7 +453,7 @@ def comparar_tipo_4(ndd_map, inventario):
             serial,
             item,
             "End Color vs End Color",
-            registro_print["EndCounterColor"],
+            registro_a4["EndCounterColor"],
             linha["End_Color"]
         )
 
