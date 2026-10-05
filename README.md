@@ -63,7 +63,7 @@ As regras de comparação são baseadas no tipo da impressora informado no fatur
 |---|---|
 | **1 e 2** | Contadores **A4** do NDD × contadores **Mono** do faturamento |
 | **3** | Contadores **A3 e A4** do NDD × **Mono A3 e Mono** do faturamento |
-| **4** | Contadores **Mono e Color** de `Print` no NDD × **Mono e Color** do faturamento |
+| **4** | Contadores **Mono e Color** de `A4` no NDD × **Mono e Color** do faturamento |
 | **5** | Contadores **A3/A4 + Mono/Color** do NDD × campos correspondentes do faturamento |
 
 Quando existe diferença, ela é registrada individualmente no relatório.
@@ -82,7 +82,7 @@ A estrutura principal contém:
 | `Tipo/Item` | Tipo da impressora |
 | `Campo Divergente` | Contador que apresentou diferença |
 | `Valor NDD` | Valor encontrado no NDD |
-| `Valor Tecprinters` | Valor encontrado no faturamento |
+| `Valor TP` | Valor encontrado no faturamento |
 
 O relatório também apresenta no cabeçalho:
 
