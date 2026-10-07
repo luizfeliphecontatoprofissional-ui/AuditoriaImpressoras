@@ -987,6 +987,23 @@ def selecionar_arquivo(entry):
         entry.delete(0, tk.END)
         entry.insert(0, caminho)
 
+        atualizar_estado_botao()
+
+
+def atualizar_estado_botao(event=None):
+    caminho_ndd = entrada_ndd.get().strip()
+    caminho_faturamento = entrada_faturamento.get().strip()
+
+    if (
+        caminho_ndd
+        and caminho_faturamento
+        and os.path.isfile(caminho_ndd)
+        and os.path.isfile(caminho_faturamento)
+    ):
+        botao_executar.config(state="normal")
+    else:
+        botao_executar.config(state="disabled")
+
 
 def abrir_relatorio():
     if not ultimo_relatorio:
@@ -1009,6 +1026,7 @@ def abrir_relatorio():
 
     try:
         os.startfile(caminho_relatorio)
+
     except Exception as erro:
         messagebox.showerror(
             "Erro ao abrir relatório",
@@ -1045,7 +1063,11 @@ def executar_pela_interface():
 
     botao_executar.config(state="disabled")
     botao_abrir.config(state="disabled")
-    status_var.set("Executando auditoria...")
+
+    status_var.set(
+        "Executando auditoria..."
+    )
+
     root.update_idletasks()
 
     resultado = executar_auditoria(
@@ -1055,17 +1077,26 @@ def executar_pela_interface():
 
     if resultado["sucesso"]:
         total = resultado["total_divergencias"]
-        inicio = resultado["data_inicio"].strftime("%d/%m/%Y")
-        fim = resultado["data_fim"].strftime("%d/%m/%Y")
+
+        inicio = resultado["data_inicio"].strftime(
+            "%d/%m/%Y"
+        )
+
+        fim = resultado["data_fim"].strftime(
+            "%d/%m/%Y"
+        )
 
         status_var.set(
-            f"Auditoria concluída | Período: {inicio} a {fim} "
-            f"| Divergências: {total}"
+            f"Auditoria concluída\n"
+            f"Período: {inicio} a {fim}\n"
+            f"Divergências encontradas: {total}"
         )
 
         ultimo_relatorio = resultado["caminho_relatorio"]
 
-        botao_abrir.config(state="normal")
+        botao_abrir.config(
+            state="normal"
+        )
 
         messagebox.showinfo(
             "Auditoria concluída",
@@ -1075,14 +1106,18 @@ def executar_pela_interface():
             "Relatório salvo em:\n"
             f"{resultado['caminho_relatorio']}"
         )
+
     else:
-        status_var.set("A auditoria não foi concluída.")
+        status_var.set(
+            "A auditoria não foi concluída."
+        )
+
         messagebox.showerror(
             "Erro na auditoria",
             resultado["mensagem"]
         )
 
-    botao_executar.config(state="normal")
+    atualizar_estado_botao()
 
 
 def main():
@@ -1098,10 +1133,11 @@ def main():
 
     root = tk.Tk()
     root.title("Auditoria de Impressoras")
-    root.geometry("650x500")
+    root.geometry("650x620")
     root.resizable(False, False)
 
     estilo = ttk.Style()
+
     try:
         estilo.theme_use("vista")
     except tk.TclError:
@@ -1111,87 +1147,208 @@ def main():
         root,
         padding=30
     )
-    frame_principal.pack(fill="both", expand=True)
+
+    frame_principal.pack(
+        fill="both",
+        expand=True
+    )
 
     titulo = ttk.Label(
         frame_principal,
         text="AUDITORIA DE IMPRESSORAS",
         font=("Segoe UI", 18, "bold")
     )
-    titulo.pack(pady=(0, 5))
+
+    titulo.pack(
+        pady=(0, 5)
+    )
 
     subtitulo = ttk.Label(
         frame_principal,
         text="Comparação entre dados NDD e Faturamento"
     )
-    subtitulo.pack(pady=(0, 25))
 
-    frame_ndd = ttk.Frame(frame_principal)
-    frame_ndd.pack(fill="x", pady=5)
+    subtitulo.pack(
+        pady=(0, 20)
+    )
+
+    frame_arquivos = ttk.LabelFrame(
+        frame_principal,
+        text="Arquivos de entrada",
+        padding=15
+    )
+
+    frame_arquivos.pack(
+        fill="x",
+        pady=5
+    )
 
     ttk.Label(
-        frame_ndd,
+        frame_arquivos,
         text="Arquivo NDD"
-    ).pack(anchor="w")
+    ).grid(
+        row=0,
+        column=0,
+        sticky="w"
+    )
 
-    linha_ndd = ttk.Frame(frame_ndd)
-    linha_ndd.pack(fill="x", pady=(5, 0))
+    linha_ndd = ttk.Frame(
+        frame_arquivos
+    )
 
-    entrada_ndd = ttk.Entry(linha_ndd)
-    entrada_ndd.pack(side="left", fill="x", expand=True)
+    linha_ndd.grid(
+        row=1,
+        column=0,
+        sticky="ew",
+        pady=(5, 10)
+    )
+
+    entrada_ndd = ttk.Entry(
+        linha_ndd
+    )
+
+    entrada_ndd.pack(
+        side="left",
+        fill="x",
+        expand=True
+    )
 
     ttk.Button(
         linha_ndd,
         text="Procurar",
         command=lambda: selecionar_arquivo(entrada_ndd)
-    ).pack(side="left", padx=(8, 0))
-
-    frame_faturamento = ttk.Frame(frame_principal)
-    frame_faturamento.pack(fill="x", pady=15)
+    ).pack(
+        side="left",
+        padx=(8, 0)
+    )
 
     ttk.Label(
-        frame_faturamento,
+        frame_arquivos,
         text="Arquivo de Faturamento"
-    ).pack(anchor="w")
+    ).grid(
+        row=2,
+        column=0,
+        sticky="w"
+    )
 
-    linha_faturamento = ttk.Frame(frame_faturamento)
-    linha_faturamento.pack(fill="x", pady=(5, 0))
+    linha_faturamento = ttk.Frame(
+        frame_arquivos
+    )
 
-    entrada_faturamento = ttk.Entry(linha_faturamento)
-    entrada_faturamento.pack(side="left", fill="x", expand=True)
+    linha_faturamento.grid(
+        row=3,
+        column=0,
+        sticky="ew",
+        pady=(5, 0)
+    )
+
+    entrada_faturamento = ttk.Entry(
+        linha_faturamento
+    )
+
+    entrada_faturamento.pack(
+        side="left",
+        fill="x",
+        expand=True
+    )
 
     ttk.Button(
         linha_faturamento,
         text="Procurar",
-        command=lambda: selecionar_arquivo(entrada_faturamento)
-    ).pack(side="left", padx=(8, 0))
+        command=lambda: selecionar_arquivo(
+            entrada_faturamento
+        )
+    ).pack(
+        side="left",
+        padx=(8, 0)
+    )
+
+    frame_arquivos.columnconfigure(
+        0,
+        weight=1
+    )
+
+    entrada_ndd.bind(
+        "<KeyRelease>",
+        atualizar_estado_botao
+    )
+
+    entrada_faturamento.bind(
+        "<KeyRelease>",
+        atualizar_estado_botao
+    )
+
+    frame_execucao = ttk.LabelFrame(
+        frame_principal,
+        text="Execução",
+        padding=15
+    )
+
+    frame_execucao.pack(
+        fill="x",
+        pady=12
+    )
 
     botao_executar = ttk.Button(
-        frame_principal,
+        frame_execucao,
         text="EXECUTAR AUDITORIA",
-        command=executar_pela_interface
+        command=executar_pela_interface,
+        state="disabled"
     )
-    botao_executar.pack(pady=(20, 10), ipadx=20, ipady=5)
+
+    botao_executar.pack(
+        ipadx=20,
+        ipady=5
+    )
+
+    frame_resultado = ttk.LabelFrame(
+        frame_principal,
+        text="Resultado",
+        padding=15
+    )
+
+    frame_resultado.pack(
+        fill="x",
+        pady=5
+    )
 
     botao_abrir = ttk.Button(
-        frame_principal,
-        text="ABRIR RELATÓRIO",
+        frame_resultado,
+        text="ABRIR ÚLTIMO RELATÓRIO",
         command=abrir_relatorio,
         state="disabled"
     )
-    botao_abrir.pack(pady=5, ipadx=20, ipady=3)
+
+    botao_abrir.pack(
+        ipadx=10,
+        ipady=3,
+        pady=(0, 10)
+    )
 
     status_var = tk.StringVar(
         value="Status: Aguardando arquivos..."
     )
 
     status = ttk.Label(
-        frame_principal,
+        frame_resultado,
         textvariable=status_var,
         wraplength=540,
-        anchor="center"
+        anchor="center",
+        justify="center"
     )
-    status.pack(pady=(18, 0), fill="x")
+
+    status.pack(
+        fill="x"
+    )
+
+    versao = ttk.Label(
+        frame_principal,
+        text="Versão 6.2"
+    )
+
+    versao.pack(
+        pady=(12, 0)
+    )
 
     root.mainloop()
 
