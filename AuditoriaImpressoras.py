@@ -989,6 +989,26 @@ def selecionar_arquivo(entry):
 
         atualizar_estado_botao()
 
+        caminho_ndd = entrada_ndd.get().strip()
+        caminho_faturamento = entrada_faturamento.get().strip()
+
+        if (
+            caminho_ndd
+            and caminho_faturamento
+            and os.path.isfile(caminho_ndd)
+            and os.path.isfile(caminho_faturamento)
+        ):
+            atualizar_status(
+                "Arquivos selecionados.\n"
+                "Pronto para executar a auditoria.",
+                "pronto"
+            )
+        else:
+            atualizar_status(
+                "Aguardando seleção dos arquivos...",
+                "normal"
+            )
+
 
 def atualizar_estado_botao(event=None):
     caminho_ndd = entrada_ndd.get().strip()
@@ -1003,6 +1023,21 @@ def atualizar_estado_botao(event=None):
         botao_executar.config(state="normal")
     else:
         botao_executar.config(state="disabled")
+
+def atualizar_status(mensagem, tipo="normal"):
+    status_var.set(mensagem)
+
+    cores = {
+        "normal": "#000000",
+        "pronto": "#1f5f8b",
+        "executando": "#8a6500",
+        "sucesso": "#2e7d32",
+        "erro": "#b3261e"
+    }
+
+    status_label.config(
+        foreground=cores.get(tipo, "#000000")
+    )
 
 
 def abrir_relatorio():
@@ -1064,8 +1099,10 @@ def executar_pela_interface():
     botao_executar.config(state="disabled")
     botao_abrir.config(state="disabled")
 
-    status_var.set(
-        "Executando auditoria..."
+    atualizar_status(
+        "Executando auditoria...\n"
+        "Aguarde.",
+        "executando"
     )
 
     root.update_idletasks()
@@ -1086,10 +1123,11 @@ def executar_pela_interface():
             "%d/%m/%Y"
         )
 
-        status_var.set(
-            f"Auditoria concluída\n"
+        atualizar_status(
+            f"Auditoria concluída!\n"
             f"Período: {inicio} a {fim}\n"
-            f"Divergências encontradas: {total}"
+            f"Divergências encontradas: {total}",
+            "sucesso"
         )
 
         ultimo_relatorio = resultado["caminho_relatorio"]
@@ -1108,8 +1146,9 @@ def executar_pela_interface():
         )
 
     else:
-        status_var.set(
-            "A auditoria não foi concluída."
+        atualizar_status(
+            "A auditoria não foi concluída.",
+            "erro"
         )
 
         messagebox.showerror(
@@ -1128,12 +1167,13 @@ def main():
     global botao_abrir
     global status_var
     global ultimo_relatorio
+    global status_label
 
     ultimo_relatorio = None
 
     root = tk.Tk()
     root.title("Auditoria de Impressoras")
-    root.geometry("650x620")
+    root.geometry("650x660")
     root.resizable(False, False)
 
     estilo = ttk.Style()
@@ -1325,19 +1365,27 @@ def main():
         pady=(0, 10)
     )
 
-    status_var = tk.StringVar(
-        value="Status: Aguardando arquivos..."
+    ttk.Label(
+        frame_resultado,
+        text="Status da auditoria",
+        font=("Segoe UI", 10, "bold")
+    ).pack(
+        pady=(0, 5)
     )
 
-    status = ttk.Label(
+    status_var = tk.StringVar(
+        value="Aguardando seleção dos arquivos..."
+    )
+
+    status_label = tk.Label(
         frame_resultado,
         textvariable=status_var,
-        wraplength=540,
-        anchor="center",
-        justify="center"
+        font=("Segoe UI", 10),
+        justify="center",
+        wraplength=540
     )
 
-    status.pack(
+    status_label.pack(
         fill="x"
     )
 
