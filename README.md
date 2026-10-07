@@ -6,7 +6,7 @@
 
 O **Auditoria de Impressoras** é uma aplicação desenvolvida em Python para automatizar a conferência dos contadores de impressoras utilizados na fiscalização de contratos de impressão.
 
-A proposta do projeto é comparar os dados brutos de leitura de contadores fornecidos pelo **NDD** com os dados de faturamento da **Tecprinters**, identificando automaticamente diferenças que poderiam passar despercebidas em uma conferência manual.
+A proposta do projeto é comparar os dados brutos de leitura de contadores fornecidos pelo NDD com os dados do faturamento, identificando automaticamente diferenças que poderiam passar despercebidas em uma conferência manual.
 
 Além de realizar as comparações, a aplicação gera um **relatório em Excel com as divergências encontradas**, facilitando a análise pelo fiscal do contrato.
 
@@ -63,7 +63,7 @@ As regras de comparação são baseadas no tipo da impressora informado no fatur
 |---|---|
 | **1 e 2** | Contadores **A4** do NDD × contadores **Mono** do faturamento |
 | **3** | Contadores **A3 e A4** do NDD × **Mono A3 e Mono** do faturamento |
-| **4** | Contadores **Mono e Color** de `Print` no NDD × **Mono e Color** do faturamento |
+| **4** | Contadores **Mono e Color** de `A4` no NDD × **Mono e Color** do faturamento |
 | **5** | Contadores **A3/A4 + Mono/Color** do NDD × campos correspondentes do faturamento |
 
 Quando existe diferença, ela é registrada individualmente no relatório.
@@ -82,7 +82,7 @@ A estrutura principal contém:
 | `Tipo/Item` | Tipo da impressora |
 | `Campo Divergente` | Contador que apresentou diferença |
 | `Valor NDD` | Valor encontrado no NDD |
-| `Valor Tecprinters` | Valor encontrado no faturamento |
+| `Valor TP` | Valor encontrado no faturamento |
 
 O relatório também apresenta no cabeçalho:
 
@@ -91,21 +91,6 @@ O relatório também apresenta no cabeçalho:
 - formatação para facilitar a leitura;
 - filtro automático;
 - congelamento do cabeçalho.
-
-### Organização dos arquivos
-
-Os relatórios não são mais sobrescritos.
-
-O nome é gerado automaticamente usando o período analisado:
-
-```text
-relatorios/
-├── Relatorio_Divergencias_30-06-2026_a_31-07-2026.xlsx
-├── Relatorio_Divergencias_30-06-2026_a_31-07-2026_2.xlsx
-└── Relatorio_Divergencias_31-07-2026_a_31-08-2026.xlsx
-```
-
-Isso permite manter o histórico das execuções.
 
 ---
 
@@ -129,31 +114,13 @@ A interface foi criada para esconder a complexidade do processamento e deixar a 
 
 ## Tecnologias utilizadas
 
-- **Python**
+- **Python** 
 - **Pandas** — leitura, tratamento e comparação dos dados
 - **OpenPyXL** — leitura e geração dos arquivos Excel
 - **Tkinter** — interface gráfica
-- **PyInstaller** — previsto para a criação da versão executável
 
----
 
-## Estrutura do projeto
-
-```text
-Auditorialmpressores/
-│
-├── dados/
-│   ├── NDD.xlsx
-│   └── Faturamento.xlsx
-│
-├── relatorios/
-│   └── Relatorio_Divergencias_*.xlsx
-│
-├── Auditorialmpressores.py
-└── .gitignore
-```
-
-Os arquivos de dados utilizados na empresa não fazem parte do repositório público.
+PyInstaller — previsto para a criação da versão executável
 
 ---
 
@@ -167,7 +134,6 @@ O projeto já possui:
 - interface gráfica;
 - tratamento de erros;
 - organização histórica dos relatórios;
-- versionamento com Git e GitHub.
 
 ### Próximas evoluções
 
@@ -175,26 +141,7 @@ Entre as melhorias planejadas para as próximas versões estão:
 
 - validar automaticamente se os períodos do NDD e do faturamento são compatíveis;
 - continuar refinando a interface gráfica;
-- melhorar a apresentação dos resultados;
 - criar uma versão executável (`.exe`) para facilitar a distribuição e utilização.
-
----
-
-## Por que este projeto foi criado?
-
-A conferência de contadores de impressão pode envolver muitos dispositivos e vários tipos de contador. Quando essa verificação é feita manualmente, comparar linha por linha se torna uma tarefa repetitiva e sujeita a falhas.
-
-A proposta do projeto é transformar essa conferência em uma rotina automatizada, mantendo o resultado **rastreável e fácil de revisar**.
-
-Em vez de procurar manualmente por diferenças entre duas grandes planilhas:
-
-```text
-NDD ───────────────┐
-                   ├──→ Auditoria automática ──→ Divergências
-Faturamento ───────┘
-```
-
-O fiscal recebe um relatório já concentrado nos pontos que precisam ser analisados.
 
 ---
 
