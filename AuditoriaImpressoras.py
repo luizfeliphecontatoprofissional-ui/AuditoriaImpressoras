@@ -974,7 +974,7 @@ def executar_auditoria(
         }
 
 
-def selecionar_arquivo(entry):
+def selecionar_arquivo(tipo):
     caminho = filedialog.askopenfilename(
         title="Selecionar arquivo",
         filetypes=[
@@ -983,42 +983,57 @@ def selecionar_arquivo(entry):
         ]
     )
 
-    if caminho:
-        entry.delete(0, tk.END)
-        entry.insert(0, caminho)
+    if not caminho:
+        return
 
-        atualizar_estado_botao()
+    nome_arquivo = os.path.basename(caminho)
 
-        caminho_ndd = entrada_ndd.get().strip()
-        caminho_faturamento = entrada_faturamento.get().strip()
+    if tipo == "ndd":
+        global caminho_ndd_selecionado
 
-        if (
-            caminho_ndd
-            and caminho_faturamento
-            and os.path.isfile(caminho_ndd)
-            and os.path.isfile(caminho_faturamento)
-        ):
-            atualizar_status(
-                "Arquivos selecionados.\n"
-                "Pronto para executar a auditoria.",
-                "pronto"
-            )
-        else:
-            atualizar_status(
-                "Aguardando seleção dos arquivos...",
-                "normal"
-            )
+        caminho_ndd_selecionado = caminho
+
+        entrada_ndd.config(state="normal")
+        entrada_ndd.delete(0, tk.END)
+        entrada_ndd.insert(0, nome_arquivo)
+        entrada_ndd.config(state="readonly")
+
+    elif tipo == "faturamento":
+        global caminho_faturamento_selecionado
+
+        caminho_faturamento_selecionado = caminho
+
+        entrada_faturamento.config(state="normal")
+        entrada_faturamento.delete(0, tk.END)
+        entrada_faturamento.insert(0, nome_arquivo)
+        entrada_faturamento.config(state="readonly")
+
+    atualizar_estado_botao()
+
+    if (
+        caminho_ndd_selecionado
+        and caminho_faturamento_selecionado
+        and os.path.isfile(caminho_ndd_selecionado)
+        and os.path.isfile(caminho_faturamento_selecionado)
+    ):
+        atualizar_status(
+            "Arquivos selecionados.\n"
+            "Pronto para executar a auditoria.",
+            "pronto"
+        )
+    else:
+        atualizar_status(
+            "Aguardando seleção dos arquivos...",
+            "normal"
+        )
 
 
 def atualizar_estado_botao(event=None):
-    caminho_ndd = entrada_ndd.get().strip()
-    caminho_faturamento = entrada_faturamento.get().strip()
-
     if (
-        caminho_ndd
-        and caminho_faturamento
-        and os.path.isfile(caminho_ndd)
-        and os.path.isfile(caminho_faturamento)
+        caminho_ndd_selecionado
+        and caminho_faturamento_selecionado
+        and os.path.isfile(caminho_ndd_selecionado)
+        and os.path.isfile(caminho_faturamento_selecionado)
     ):
         botao_executar.config(state="normal")
     else:
@@ -1071,9 +1086,11 @@ def abrir_relatorio():
 
 def executar_pela_interface():
     global ultimo_relatorio
+    global caminho_ndd_selecionado
+    global caminho_faturamento_selecionado
 
-    caminho_ndd = entrada_ndd.get().strip()
-    caminho_faturamento = entrada_faturamento.get().strip()
+    caminho_ndd = caminho_ndd_selecionado
+    caminho_faturamento = caminho_faturamento_selecionado
 
     if not caminho_ndd or not caminho_faturamento:
         messagebox.showwarning(
@@ -1168,8 +1185,12 @@ def main():
     global status_var
     global ultimo_relatorio
     global status_label
+    global caminho_ndd_selecionado
+    global caminho_faturamento_selecionado
 
     ultimo_relatorio = None
+    caminho_faturamento_selecionado = None
+    caminho_ndd_selecionado = None
 
     root = tk.Tk()
     root.title("Auditoria de Impressoras")
@@ -1244,7 +1265,8 @@ def main():
     )
 
     entrada_ndd = ttk.Entry(
-        linha_ndd
+        linha_ndd,
+        state="readonly"
     )
 
     entrada_ndd.pack(
@@ -1256,7 +1278,7 @@ def main():
     ttk.Button(
         linha_ndd,
         text="Procurar",
-        command=lambda: selecionar_arquivo(entrada_ndd)
+        command=lambda: selecionar_arquivo("ndd")
     ).pack(
         side="left",
         padx=(8, 0)
@@ -1283,7 +1305,8 @@ def main():
     )
 
     entrada_faturamento = ttk.Entry(
-        linha_faturamento
+        linha_faturamento,
+        state="readonly"
     )
 
     entrada_faturamento.pack(
@@ -1296,7 +1319,7 @@ def main():
         linha_faturamento,
         text="Procurar",
         command=lambda: selecionar_arquivo(
-            entrada_faturamento
+            "faturamento"
         )
     ).pack(
         side="left",
@@ -1306,16 +1329,6 @@ def main():
     frame_arquivos.columnconfigure(
         0,
         weight=1
-    )
-
-    entrada_ndd.bind(
-        "<KeyRelease>",
-        atualizar_estado_botao
-    )
-
-    entrada_faturamento.bind(
-        "<KeyRelease>",
-        atualizar_estado_botao
     )
 
     frame_execucao = ttk.LabelFrame(
