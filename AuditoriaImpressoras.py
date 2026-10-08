@@ -1088,6 +1088,8 @@ def executar_pela_interface():
     global ultimo_relatorio
     global caminho_ndd_selecionado
     global caminho_faturamento_selecionado
+    global periodo_var
+    global divergencias_var
 
     caminho_ndd = caminho_ndd_selecionado
     caminho_faturamento = caminho_faturamento_selecionado
@@ -1116,6 +1118,9 @@ def executar_pela_interface():
     botao_executar.config(state="disabled")
     botao_abrir.config(state="disabled")
 
+    periodo_var.set("--")
+    divergencias_var.set("--")
+
     atualizar_status(
         "Executando auditoria...\n"
         "Aguarde.",
@@ -1141,10 +1146,16 @@ def executar_pela_interface():
         )
 
         atualizar_status(
-            f"Auditoria concluída!\n"
-            f"Período: {inicio} a {fim}\n"
-            f"Divergências encontradas: {total}",
+            "Auditoria concluída!",
             "sucesso"
+        )
+
+        periodo_var.set(
+            f"{inicio} a {fim}"
+        )
+
+        divergencias_var.set(
+            str(total)
         )
 
         ultimo_relatorio = resultado["caminho_relatorio"]
@@ -1187,6 +1198,8 @@ def main():
     global status_label
     global caminho_ndd_selecionado
     global caminho_faturamento_selecionado
+    global periodo_var
+    global divergencias_var
 
     ultimo_relatorio = None
     caminho_faturamento_selecionado = None
@@ -1194,7 +1207,7 @@ def main():
 
     root = tk.Tk()
     root.title("Auditoria de Impressoras")
-    root.geometry("650x660")
+    root.geometry("650x720")
     root.resizable(False, False)
 
     estilo = ttk.Style()
@@ -1365,19 +1378,6 @@ def main():
         pady=5
     )
 
-    botao_abrir = ttk.Button(
-        frame_resultado,
-        text="ABRIR ÚLTIMO RELATÓRIO",
-        command=abrir_relatorio,
-        state="disabled"
-    )
-
-    botao_abrir.pack(
-        ipadx=10,
-        ipady=3,
-        pady=(0, 10)
-    )
-
     ttk.Label(
         frame_resultado,
         text="Status da auditoria",
@@ -1399,12 +1399,64 @@ def main():
     )
 
     status_label.pack(
-        fill="x"
+        fill="x",
+        pady=(0, 15)
+    )
+
+    ttk.Label(
+        frame_resultado,
+        text="Período analisado",
+        font=("Segoe UI", 9, "bold")
+    ).pack(
+        pady=(0, 2)
+    )
+
+    periodo_var = tk.StringVar(
+        value="--"
+    )
+
+    ttk.Label(
+        frame_resultado,
+        textvariable=periodo_var
+    ).pack(
+        pady=(0, 12)
+    )
+
+    ttk.Label(
+        frame_resultado,
+        text="Divergências encontradas",
+        font=("Segoe UI", 9, "bold")
+    ).pack(
+        pady=(0, 2)
+    )
+
+    divergencias_var = tk.StringVar(
+        value="--"
+    )
+
+    ttk.Label(
+        frame_resultado,
+        textvariable=divergencias_var,
+        font=("Segoe UI", 12, "bold")
+    ).pack(
+        pady=(0, 15)
+    )
+
+    botao_abrir = ttk.Button(
+        frame_resultado,
+        text="ABRIR ÚLTIMO RELATÓRIO",
+        command=abrir_relatorio,
+        state="disabled"
+    )
+
+    botao_abrir.pack(
+        ipadx=10,
+        ipady=3
     )
 
     versao = ttk.Label(
         frame_principal,
-        text="Versão 6.2"
+        text="Versão 6.4"
     )
 
     versao.pack(
