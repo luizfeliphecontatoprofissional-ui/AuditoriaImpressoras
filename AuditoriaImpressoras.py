@@ -1,3 +1,4 @@
+import csv
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -7,12 +8,125 @@ import pandas as pd
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
 
+def ler_csv_robusto(caminho, header=0):
+    codificacoes = ("utf-8-sig", "cp1252", "latin1")
+    separadores_padrao = (";", ",", "\t", "|")
+    erros = []
+
+    for codificacao in codificacoes:
+        try:
+            with open(
+                caminho,
+                "r",
+                encoding=codificacao,
+                newline=""
+            ) as arquivo:
+                amostra = arquivo.read(20000)
+        except UnicodeDecodeError as erro:
+            erros.append(str(erro))
+            continue
+
+        if not amostra.strip():
+            raise ValueError("O arquivo CSV está vazio.")
+
+        separadores = []
+
+        try:
+            separador_detectado = csv.Sniffer().sniff(
+                amostra,
+                delimiters=";,\t|"
+            ).delimiter
+            separadores.append(separador_detectado)
+        except csv.Error:
+            pass
+
+        separadores.extend(separadores_padrao)
+
+        melhor_separador = None
+        maior_quantidade_colunas = 0
+
+        for separador in dict.fromkeys(separadores):
+            try:
+                amostra_df = pd.read_csv(
+                    caminho,
+                    sep=separador,
+                    encoding=codificacao,
+                    header=header,
+                    nrows=20,
+                    thousands=".",
+                    decimal=","
+                )
+                quantidade_colunas = len(amostra_df.columns)
+
+                if quantidade_colunas > maior_quantidade_colunas:
+                    maior_quantidade_colunas = quantidade_colunas
+                    melhor_separador = separador
+
+            except (pd.errors.ParserError, pd.errors.EmptyDataError) as erro:
+                erros.append(str(erro))
+            except UnicodeDecodeError as erro:
+                erros.append(str(erro))
+
+        if melhor_separador is None or maior_quantidade_colunas < 2:
+            continue
+
+        try:
+            dados = pd.read_csv(
+                caminho,
+                sep=melhor_separador,
+                encoding=codificacao,
+                header=header,
+                thousands=".",
+                decimal=","
+            )
+        except pd.errors.EmptyDataError as erro:
+            raise ValueError("O arquivo CSV está vazio ou não contém uma tabela válida.") from erro
+        except (pd.errors.ParserError, UnicodeDecodeError) as erro:
+            erros.append(str(erro))
+            continue
+
+        if dados.empty:
+            raise ValueError("O arquivo CSV não contém registros de dados.")
+
+        return dados
+
+    detalhe = erros[-1] if erros else "separador não reconhecido"
+    raise ValueError(
+        "Não foi possível interpretar o arquivo CSV. "
+        "Verifique se ele usa separador por vírgula, ponto e vírgula, tabulação "
+        "ou barra vertical e se contém uma tabela válida.\n\n"
+        f"Detalhes: {detalhe}"
+    )
+
+def ler_arquivo_tabela(caminho, header=0, sheet_name=None):
+    extensao = os.path.splitext(caminho)[1].lower()
+
+    if extensao == ".csv":
+        return ler_csv_robusto(caminho, header=header)
+
+    if extensao == ".xlsx":
+        argumentos = {"header": header}
+        if sheet_name is not None:
+            argumentos["sheet_name"] = sheet_name
+        return pd.read_excel(caminho, **argumentos)
+
+    raise ValueError(
+        "Formato de arquivo não suportado. Selecione um arquivo .xlsx ou .csv."
+    )
+
+
 def carregar_inventario(caminho):
-    dados = pd.read_excel(
+    dados = ler_arquivo_tabela(
         caminho,
         sheet_name="Inventário & Volume",
         header=None
     )
+
+    if dados.empty or len(dados.index) < 10:
+        raise ValueError(
+            "O arquivo de faturamento está vazio ou não contém a estrutura esperada. "
+            "São necessárias pelo menos 10 linhas de cabeçalho e dados."
+        )
 
     grupos = dados.iloc[8].ffill()
     campos = dados.iloc[9]
@@ -20,7 +134,7 @@ def carregar_inventario(caminho):
     datas = []
 
     for valor in dados.iloc[8]:
-        data = pd.to_datetime(valor, errors="coerce")
+        data = pd.to_datetime(valor, errors="coerce", dayfirst=True)
 
         if pd.notna(data):
             datas.append(data)
@@ -47,7 +161,7 @@ def carregar_inventario(caminho):
             novas_colunas.append(None)
             continue
 
-        grupo_data = pd.to_datetime(grupo, errors="coerce")
+        grupo_data = pd.to_datetime(grupo, errors="coerce", dayfirst=True)
 
         if pd.notna(grupo_data):
 
@@ -72,6 +186,57 @@ def carregar_inventario(caminho):
     dados.columns = novas_colunas
 
     return dados, data_inicio, data_fim
+
+
+def obter_periodo_predominante_ndd(ndd):
+    colunas = [
+        "CounterTypeDescription",
+        "StartDateTimeRead",
+        "EndDateTimeRead"
+    ]
+
+    if not all(coluna in ndd.columns for coluna in colunas):
+        return None
+
+    dados = ndd[
+        ndd["CounterTypeDescription"]
+        .astype(str)
+        .str.strip()
+        .isin(["A3", "A4"])
+    ].copy()
+
+    dados["Inicio"] = pd.to_datetime(
+        dados["StartDateTimeRead"],
+        errors="coerce",
+        dayfirst=True
+    ).dt.normalize()
+
+    dados["Fim"] = pd.to_datetime(
+        dados["EndDateTimeRead"],
+        errors="coerce",
+        dayfirst=True
+    ).dt.normalize()
+
+    dados = dados.dropna(
+        subset=["Inicio", "Fim"]
+    )
+
+    if dados.empty:
+        return None
+
+    contagem = (
+        dados.groupby(["Inicio", "Fim"])
+        .size()
+        .sort_values(ascending=False)
+    )
+
+    inicio, fim = contagem.index[0]
+
+    return {
+        "inicio": inicio,
+        "fim": fim,
+        "quantidade": int(contagem.iloc[0])
+    }
 
 
 def verificar_counter_types(ndd, inventario):
@@ -228,6 +393,25 @@ def criar_ndd_map(ndd):
 
 
 def para_numero(valor):
+    if pd.isna(valor):
+        return None
+
+    if isinstance(valor, str):
+        valor = valor.strip()
+        valor = valor.replace("\u00a0", "")
+        valor = valor.replace(" ", "")
+        valor = valor.replace("R$", "")
+
+        if not valor or valor.lower() in {
+            "nan", "none", "null", "-"
+        }:
+            return None
+        if "," in valor:
+            valor = valor.replace(".", "")
+            valor = valor.replace(",", ".")
+        elif "." in valor:
+            valor = valor.replace(".", "")
+
     numero = pd.to_numeric(
         valor,
         errors="coerce"
@@ -774,15 +958,43 @@ def executar_auditoria(
 ):
     try:
 
-        ndd = pd.read_excel(
-            caminho_ndd
-        )
+        ndd = ler_arquivo_tabela(caminho_ndd)
+        ndd.columns = ndd.columns.astype(str).str.strip()
 
         inventario, data_inicio, data_fim = (
             carregar_inventario(
                 caminho_faturamento
             )
         )
+
+        periodo_ndd = obter_periodo_predominante_ndd(ndd)
+
+        print("\n=== PERÍODOS DOS ARQUIVOS ===")
+
+        if periodo_ndd:
+            inicio_ndd = periodo_ndd["inicio"].strftime("%d/%m/%Y")
+            fim_ndd = periodo_ndd["fim"].strftime("%d/%m/%Y")
+
+            print(
+                f"Período predominante do NDD (A3/A4): "
+                f"{inicio_ndd} a {fim_ndd}"
+            )
+
+            print(
+                "Registros com esse período:",
+                periodo_ndd["quantidade"]
+            )
+        else:
+            print(
+                "Período do NDD: não foi possível identificar."
+            )
+
+        print(
+            f"Período do Faturamento: "
+            f"{data_inicio:%d/%m/%Y} a {data_fim:%d/%m/%Y}"
+        )
+
+        print("A auditoria continuará normalmente.\n")
 
         ndd_map = criar_ndd_map(ndd)
 
@@ -880,6 +1092,7 @@ def executar_auditoria(
             "caminho_relatorio": caminho_relatorio,
             "data_inicio": data_inicio,
             "data_fim": data_fim,
+            "periodo_ndd": periodo_ndd,
             "total_divergencias": len(divergencias)
         }
 
@@ -978,7 +1191,9 @@ def selecionar_arquivo(tipo):
     caminho = filedialog.askopenfilename(
         title="Selecionar arquivo",
         filetypes=[
-            ("Arquivos Excel", "*.xlsx"),
+            ("Arquivos Excel e CSV", "*.xlsx *.csv"),
+            ("Arquivos Excel (*.xlsx)", "*.xlsx"),
+            ("Arquivos CSV (*.csv)", "*.csv"),
             ("Todos os arquivos", "*.*")
         ]
     )
@@ -1150,8 +1365,21 @@ def executar_pela_interface():
             "sucesso"
         )
 
+        periodo_ndd = resultado.get("periodo_ndd")
+
+        if periodo_ndd:
+            inicio_ndd = periodo_ndd["inicio"].strftime("%d/%m/%Y")
+            fim_ndd = periodo_ndd["fim"].strftime("%d/%m/%Y")
+
+            periodo_ndd_texto = (
+                f"NDD (predominante): {inicio_ndd} a {fim_ndd}"
+            )
+        else:
+            periodo_ndd_texto = "NDD: não identificado"
+
         periodo_var.set(
-            f"{inicio} a {fim}"
+            f"{periodo_ndd_texto}\n"
+            f"Faturamento: {inicio} a {fim}"
         )
 
         divergencias_var.set(
@@ -1167,7 +1395,8 @@ def executar_pela_interface():
         messagebox.showinfo(
             "Auditoria concluída",
             "A auditoria foi executada com sucesso.\n\n"
-            f"Período: {inicio} a {fim}\n"
+            f"{periodo_ndd_texto}\n"
+            f"Faturamento: {inicio} a {fim}\n"
             f"Divergências encontradas: {total}\n\n"
             "Relatório salvo em:\n"
             f"{resultado['caminho_relatorio']}"
@@ -1207,7 +1436,7 @@ def main():
 
     root = tk.Tk()
     root.title("Auditoria de Impressoras")
-    root.geometry("650x720")
+    root.geometry("650x760")
     root.resizable(False, False)
 
     estilo = ttk.Style()
@@ -1456,7 +1685,7 @@ def main():
 
     versao = ttk.Label(
         frame_principal,
-        text="Versão 6.4"
+        text="Versão 7.0"
     )
 
     versao.pack(
