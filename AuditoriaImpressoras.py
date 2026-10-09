@@ -961,6 +961,12 @@ def executar_auditoria(
         ndd = ler_arquivo_tabela(caminho_ndd)
         ndd.columns = ndd.columns.astype(str).str.strip()
 
+        if ndd.empty:
+            raise ValueError(
+                "O arquivo NDD está vazio ou não contém registros. "
+                "Selecione um arquivo preenchido."
+            )
+
         inventario, data_inicio, data_fim = (
             carregar_inventario(
                 caminho_faturamento
